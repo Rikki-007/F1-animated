@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>APEX // F1 Records Dashboard</title>
 
+<script>
+  (function () {
+    var saved = localStorage.getItem('f1-theme');
+    document.documentElement.setAttribute('data-theme', saved === 'light' ? 'light' : 'dark');
+  })();
+</script>
+
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
 
@@ -36,13 +43,92 @@
 
 <style>
   html { scroll-behavior: smooth; }
+
+  :root,
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --bg-page: #0a0a0d;
+    --bg-page2: #0c0c11;
+    --glow1: rgba(225,6,0,0.08);
+    --glow2: rgba(125,211,252,0.06);
+    --grid-line: rgba(255,255,255,0.035);
+    --tx-100: #ffffff;
+    --tx-70: rgba(255,255,255,0.70);
+    --tx-60: rgba(255,255,255,0.60);
+    --tx-50: rgba(255,255,255,0.50);
+    --tx-40: rgba(255,255,255,0.40);
+    --tx-30: rgba(255,255,255,0.30);
+    --tx-25: rgba(255,255,255,0.25);
+    --tx-10: rgba(255,255,255,0.10);
+    --tx-5: rgba(255,255,255,0.05);
+    --bd-5: rgba(255,255,255,0.05);
+    --bd-8: rgba(255,255,255,0.08);
+    --bd-10: rgba(255,255,255,0.10);
+    --panel-grad1: rgba(255,255,255,0.035);
+    --panel-grad2: rgba(255,255,255,0.01);
+    --panel-shadow: none;
+    --hairline-mid: rgba(255,255,255,0.18);
+    --progress-track: rgba(255,255,255,0.06);
+    --scrollbar-track: #0a0a0d;
+    --scrollbar-thumb: #2a2a33;
+    --gold: #d4af37;
+    --gold-border: rgba(212,175,55,0.35);
+    --ice: #7dd3fc;
+    --ice-border: rgba(125,211,252,0.35);
+    --tilt-border-hover: rgba(225,6,0,0.45);
+    --tilt-shadow: 0 20px 60px -20px rgba(225,6,0,0.35), 0 0 0 1px rgba(225,6,0,0.15) inset;
+    --stat-glow: 0 0 25px rgba(225,6,0,0.35);
+    --noise-opacity: 1;
+  }
+
+  [data-theme="light"] {
+    color-scheme: light;
+    --bg-page: #ffffff;
+    --bg-page2: #fff5f5;
+    --glow1: rgba(225,6,0,0.07);
+    --glow2: rgba(225,6,0,0.035);
+    --grid-line: rgba(20,10,10,0.05);
+    --tx-100: #18131a;
+    --tx-70: rgba(24,19,26,0.72);
+    --tx-60: rgba(24,19,26,0.62);
+    --tx-50: rgba(24,19,26,0.52);
+    --tx-40: rgba(24,19,26,0.42);
+    --tx-30: rgba(24,19,26,0.32);
+    --tx-25: rgba(24,19,26,0.26);
+    --tx-10: rgba(24,19,26,0.10);
+    --tx-5: rgba(24,19,26,0.05);
+    --bd-5: rgba(225,6,0,0.08);
+    --bd-8: rgba(225,6,0,0.13);
+    --bd-10: rgba(225,6,0,0.15);
+    --panel-grad1: rgba(225,6,0,0.04);
+    --panel-grad2: rgba(0,0,0,0.01);
+    --panel-shadow: 0 4px 24px -10px rgba(150,20,20,0.12);
+    --hairline-mid: rgba(24,19,26,0.2);
+    --progress-track: rgba(20,10,10,0.08);
+    --scrollbar-track: #ffffff;
+    --scrollbar-thumb: #f2caca;
+    --gold: #a9790a;
+    --gold-border: rgba(169,121,10,0.35);
+    --ice: #0d7ab8;
+    --ice-border: rgba(13,122,184,0.35);
+    --tilt-border-hover: rgba(225,6,0,0.5);
+    --tilt-shadow: 0 20px 50px -20px rgba(225,6,0,0.22), 0 0 0 1px rgba(225,6,0,0.14) inset;
+    --stat-glow: 0 0 16px rgba(225,6,0,0.18);
+    --noise-opacity: 0.5;
+  }
+
+  *, *::before, *::after {
+    transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease, box-shadow 0.35s ease;
+  }
+
   body {
-    background-color: #0a0a0d;
+    background-color: var(--bg-page);
     background-image:
-      radial-gradient(circle at 15% 10%, rgba(225,6,0,0.08), transparent 40%),
-      radial-gradient(circle at 85% 30%, rgba(125,211,252,0.06), transparent 45%),
-      linear-gradient(180deg, #0a0a0d 0%, #0c0c11 100%);
+      radial-gradient(circle at 15% 10%, var(--glow1), transparent 40%),
+      radial-gradient(circle at 85% 30%, var(--glow2), transparent 45%),
+      linear-gradient(180deg, var(--bg-page) 0%, var(--bg-page2) 100%);
     font-family: 'Rajdhani', sans-serif;
+    color: var(--tx-100);
   }
 
   .font-display { font-family: 'Orbitron', sans-serif; }
@@ -50,19 +136,21 @@
   /* grid overlay texture */
   .grid-overlay {
     background-image:
-      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
     background-size: 48px 48px;
     mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
   }
 
   .noise {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    opacity: var(--noise-opacity);
   }
 
   .glass {
-    background: linear-gradient(145deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
-    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(145deg, var(--panel-grad1), var(--panel-grad2));
+    border: 1px solid var(--bd-8);
+    box-shadow: var(--panel-shadow);
     backdrop-filter: blur(14px);
   }
 
@@ -72,16 +160,16 @@
     transition: box-shadow 0.35s ease, border-color 0.35s ease;
   }
   .card-tilt:hover {
-    border-color: rgba(225,6,0,0.45);
-    box-shadow: 0 20px 60px -20px rgba(225,6,0,0.35), 0 0 0 1px rgba(225,6,0,0.15) inset;
+    border-color: var(--tilt-border-hover);
+    box-shadow: var(--tilt-shadow);
   }
 
   .stat-glow {
-    text-shadow: 0 0 25px rgba(225,6,0,0.35);
+    text-shadow: var(--stat-glow);
   }
 
   .hairline {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+    background: linear-gradient(90deg, transparent, var(--hairline-mid), transparent);
   }
 
   .speed-line {
@@ -91,14 +179,14 @@
   }
 
   ::-webkit-scrollbar { width: 10px; }
-  ::-webkit-scrollbar-track { background: #0a0a0d; }
-  ::-webkit-scrollbar-thumb { background: #2a2a33; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 8px; }
   ::-webkit-scrollbar-thumb:hover { background: #e10600; }
 
   .reveal { opacity: 0; }
 
   .progress-track {
-    background: rgba(255,255,255,0.06);
+    background: var(--progress-track);
   }
   .progress-fill {
     background: linear-gradient(90deg, #e10600, #ff3b30);
@@ -122,10 +210,30 @@
     -webkit-appearance: none;
     appearance: none;
   }
+
+  .theme-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 9999px;
+    border: 1px solid var(--bd-10);
+    background: linear-gradient(145deg, var(--panel-grad1), var(--panel-grad2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--tx-100);
+  }
+  .theme-toggle:hover {
+    border-color: var(--tilt-border-hover);
+  }
+  .theme-toggle svg {
+    width: 18px;
+    height: 18px;
+  }
 </style>
 </head>
 
-<body class="text-white overflow-x-hidden selection:bg-racered selection:text-white">
+<body class="text-[color:var(--tx-100)] overflow-x-hidden selection:bg-racered selection:text-white">
 
 <!-- background layers -->
 <div class="fixed inset-0 grid-overlay pointer-events-none z-0"></div>
@@ -133,25 +241,31 @@
 
 <!-- NAVBAR -->
 <header class="fixed top-0 inset-x-0 z-50">
-  <div class="glass border-b border-white/5">
+  <div class="glass border-b border-[color:var(--bd-5)]">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3" id="nav-logo">
-        <div class="w-9 h-9 rounded-md bg-racered flex items-center justify-center font-display font-900 text-sm rotate-3">A</div>
+        <div class="w-9 h-9 rounded-md bg-racered flex items-center justify-center font-display font-900 text-sm text-white rotate-3">A</div>
         <span class="font-display font-700 tracking-[0.25em] text-sm">APEX<span class="text-racered">.</span>RECORDS</span>
       </div>
-      <nav class="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide text-white/60" id="nav-links">
-        <a href="#overview" class="hover:text-white transition-colors">Overview</a>
-        <a href="#legends" class="hover:text-white transition-colors">Legends</a>
-        <a href="#teams" class="hover:text-white transition-colors">Constructors</a>
-        <a href="#circuits" class="hover:text-white transition-colors">Circuits</a>
-        <a href="#timeline" class="hover:text-white transition-colors">Timeline</a>
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide text-[color:var(--tx-60)]" id="nav-links">
+        <a href="#overview" class="hover:text-[color:var(--tx-100)] transition-colors">Overview</a>
+        <a href="#legends" class="hover:text-[color:var(--tx-100)] transition-colors">Legends</a>
+        <a href="#teams" class="hover:text-[color:var(--tx-100)] transition-colors">Constructors</a>
+        <a href="#circuits" class="hover:text-[color:var(--tx-100)] transition-colors">Circuits</a>
+        <a href="#timeline" class="hover:text-[color:var(--tx-100)] transition-colors">Timeline</a>
       </nav>
-      <div class="flex items-center gap-2 text-xs font-display tracking-widest text-racered2">
-        <span class="relative flex h-2 w-2">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-racered opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2 w-2 bg-racered"></span>
-        </span>
-        LIVE DATA
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 text-xs font-display tracking-widest text-racered2">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-racered opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-racered"></span>
+          </span>
+          LIVE DATA
+        </div>
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle light and dark mode" type="button">
+          <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+        </button>
       </div>
     </div>
   </div>
@@ -167,12 +281,12 @@
           <span class="reveal block" id="hero-l1">SPEED IS</span>
           <span class="reveal block text-transparent bg-clip-text bg-gradient-to-r from-racered via-racered2 to-gold" id="hero-l2">HISTORY.</span>
         </h1>
-        <p class="reveal mt-6 text-white/50 text-lg max-w-lg" id="hero-sub">
+        <p class="reveal mt-6 text-[color:var(--tx-50)] text-lg max-w-lg" id="hero-sub">
           A living dashboard of every record that defines the pinnacle of motorsport — drivers, constructors, and the circuits that made them legends.
         </p>
       </div>
       <div class="reveal glass rounded-2xl px-6 py-5 min-w-[220px]" id="hero-panel">
-        <p class="text-xs uppercase tracking-widest text-white/40 mb-1">Seasons Recorded</p>
+        <p class="text-xs uppercase tracking-widest text-[color:var(--tx-40)] mb-1">Seasons Recorded</p>
         <p class="font-display text-4xl font-700 num-tick" data-count="75" id="hero-counter">0</p>
         <div class="mt-3 h-1 rounded-full progress-track overflow-hidden">
           <div class="h-full rounded-full progress-fill" id="hero-bar"></div>
@@ -182,9 +296,9 @@
   </div>
 
   <!-- marquee -->
-  <div class="mt-16 border-y border-white/5 py-3 overflow-hidden relative">
+  <div class="mt-16 border-y border-[color:var(--bd-5)] py-3 overflow-hidden relative">
     <div class="marquee-track" id="marquee">
-      <div class="flex items-center gap-10 pr-10 font-display text-sm tracking-widest text-white/25 whitespace-nowrap">
+      <div class="flex items-center gap-10 pr-10 font-display text-sm tracking-widest text-[color:var(--tx-25)] whitespace-nowrap">
         <span>MAX VERSTAPPEN</span><span class="text-racered">•</span>
         <span>LEWIS HAMILTON</span><span class="text-racered">•</span>
         <span>MICHAEL SCHUMACHER</span><span class="text-racered">•</span>
@@ -195,7 +309,7 @@
         <span>MONZA</span><span class="text-racered">•</span>
         <span>SILVERSTONE</span><span class="text-racered">•</span>
       </div>
-      <div class="flex items-center gap-10 pr-10 font-display text-sm tracking-widest text-white/25 whitespace-nowrap">
+      <div class="flex items-center gap-10 pr-10 font-display text-sm tracking-widest text-[color:var(--tx-25)] whitespace-nowrap">
         <span>MAX VERSTAPPEN</span><span class="text-racered">•</span>
         <span>LEWIS HAMILTON</span><span class="text-racered">•</span>
         <span>MICHAEL SCHUMACHER</span><span class="text-racered">•</span>
@@ -216,30 +330,30 @@
 
     <div class="reveal-stat card-tilt glass rounded-2xl p-6 relative overflow-hidden">
       <div class="speed-line top-4 left-0 w-1/2"></div>
-      <p class="text-xs uppercase tracking-widest text-white/40 mb-3">Most World Titles</p>
+      <p class="text-xs uppercase tracking-widest text-[color:var(--tx-40)] mb-3">Most World Titles</p>
       <p class="font-display font-900 text-4xl stat-glow"><span class="stat-num" data-target="7">0</span></p>
-      <p class="mt-2 text-sm text-white/50">Hamilton &amp; Schumacher</p>
+      <p class="mt-2 text-sm text-[color:var(--tx-50)]">Hamilton &amp; Schumacher</p>
     </div>
 
     <div class="reveal-stat card-tilt glass rounded-2xl p-6 relative overflow-hidden">
       <div class="speed-line top-4 left-0 w-1/2"></div>
-      <p class="text-xs uppercase tracking-widest text-white/40 mb-3">Most Race Wins</p>
+      <p class="text-xs uppercase tracking-widest text-[color:var(--tx-40)] mb-3">Most Race Wins</p>
       <p class="font-display font-900 text-4xl stat-glow"><span class="stat-num" data-target="105">0</span></p>
-      <p class="mt-2 text-sm text-white/50">Lewis Hamilton</p>
+      <p class="mt-2 text-sm text-[color:var(--tx-50)]">Lewis Hamilton</p>
     </div>
 
     <div class="reveal-stat card-tilt glass rounded-2xl p-6 relative overflow-hidden">
       <div class="speed-line top-4 left-0 w-1/2"></div>
-      <p class="text-xs uppercase tracking-widest text-white/40 mb-3">Most Pole Positions</p>
+      <p class="text-xs uppercase tracking-widest text-[color:var(--tx-40)] mb-3">Most Pole Positions</p>
       <p class="font-display font-900 text-4xl stat-glow"><span class="stat-num" data-target="104">0</span></p>
-      <p class="mt-2 text-sm text-white/50">Lewis Hamilton</p>
+      <p class="mt-2 text-sm text-[color:var(--tx-50)]">Lewis Hamilton</p>
     </div>
 
     <div class="reveal-stat card-tilt glass rounded-2xl p-6 relative overflow-hidden">
       <div class="speed-line top-4 left-0 w-1/2"></div>
-      <p class="text-xs uppercase tracking-widest text-white/40 mb-3">Fastest Pit Stop</p>
+      <p class="text-xs uppercase tracking-widest text-[color:var(--tx-40)] mb-3">Fastest Pit Stop</p>
       <p class="font-display font-900 text-4xl stat-glow"><span class="stat-num" data-target="1" data-suffix="s" data-decimal="82">0</span></p>
-      <p class="mt-2 text-sm text-white/50">Red Bull Racing, 2019</p>
+      <p class="mt-2 text-sm text-[color:var(--tx-50)]">Red Bull Racing, 2019</p>
     </div>
 
   </div>
@@ -260,43 +374,43 @@
 
       <div class="driver-card card-tilt glass rounded-2xl p-7 relative group">
         <div class="flex justify-between items-start mb-6">
-          <span class="font-display text-5xl font-900 text-white/10 group-hover:text-racered/30 transition-colors">01</span>
-          <span class="text-xs font-display tracking-widest text-gold border border-gold/30 rounded-full px-3 py-1">GOAT</span>
+          <span class="font-display text-5xl font-900 text-[color:var(--tx-10)] group-hover:text-racered/30 transition-colors">01</span>
+          <span class="text-xs font-display tracking-widest text-[color:var(--gold)] border border-[color:var(--gold-border)] rounded-full px-3 py-1">GOAT</span>
         </div>
         <h3 class="font-display font-700 text-xl mb-1">Lewis Hamilton</h3>
-        <p class="text-white/40 text-sm mb-5">Mercedes-AMG Petronas</p>
+        <p class="text-[color:var(--tx-40)] text-sm mb-5">Mercedes-AMG Petronas</p>
         <div class="grid grid-cols-3 gap-3 text-center">
-          <div><p class="font-display text-2xl font-700">7</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Titles</p></div>
-          <div><p class="font-display text-2xl font-700">105</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Wins</p></div>
-          <div><p class="font-display text-2xl font-700">104</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Poles</p></div>
+          <div><p class="font-display text-2xl font-700">7</p><p class="text-[10px] uppercase text-[color:var(--tx-40)] tracking-wider">Titles</p></div>
+          <div><p class="font-display text-2xl font-700">105</p><p class="text-[10px] uppercase text-[color:var(--tx-40)] tracking-wider">Wins</p></div>
+          <div><p class="font-display text-2xl font-700">104</p><p class="text-[10px] uppercase text-[color:var(--tx-40)] tracking-wider">Poles</p></div>
         </div>
       </div>
 
       <div class="driver-card card-tilt glass rounded-2xl p-7 relative group">
         <div class="flex justify-between items-start mb-6">
-          <span class="font-display text-5xl font-900 text-white/10 group-hover:text-racered/30 transition-colors">02</span>
-          <span class="text-xs font-display tracking-widest text-ice border border-ice/30 rounded-full px-3 py-1">RED BARON</span>
+          <span class="font-display text-5xl font-900 text-[color:var(--tx-10)] group-hover:text-racered/30 transition-colors">02</span>
+          <span class="text-xs font-display tracking-widest text-[color:var(--ice)] border border-[color:var(--ice-border)] rounded-full px-3 py-1">RED BARON</span>
         </div>
         <h3 class="font-display font-700 text-xl mb-1">Michael Schumacher</h3>
-        <p class="text-white/40 text-sm mb-5">Scuderia Ferrari</p>
+        <p class="text-[color:var(--tx-40)] text-sm mb-5">Scuderia Ferrari</p>
         <div class="grid grid-cols-3 gap-3 text-center">
-          <div><p class="font-display text-2xl font-700">7</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Titles</p></div>
-          <div><p class="font-display text-2xl font-700">91</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Wins</p></div>
-          <div><p class="font-display text-2xl font-700">68</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Poles</p></div>
+          <div><p class="font-display text-2xl font-700">7</p><p class="text-[10px] uppercase text-[color:var(--tx-40)] tracking-wider">Titles</p></div>
+          <div><p class="font-display text-2xl font-700">91</p><p class="text-[10px] uppercase text-[color:var(--tx-40)] tracking-wider">Wins</p></div>
+          <div><p class="font-display text-2xl font-700">68</p><p class="text-[10px] uppercase text-[color:var(--tx-40)] tracking-wider">Poles</p></div>
         </div>
       </div>
 
       <div class="driver-card card-tilt glass rounded-2xl p-7 relative group">
         <div class="flex justify-between items-start mb-6">
-          <span class="font-display text-5xl font-900 text-white/10 group-hover:text-racered/30 transition-colors">03</span>
+          <span class="font-display text-5xl font-900 text-[color:var(--tx-10)] group-hover:text-racered/30 transition-colors">03</span>
           <span class="text-xs font-display tracking-widest text-racered2 border border-racered/30 rounded-full px-3 py-1">CURRENT</span>
         </div>
         <h3 class="font-display font-700 text-xl mb-1">Max Verstappen</h3>
-        <p class="text-white/40 text-sm mb-5">Oracle Red Bull Racing</p>
+        <p class="text-[color:var(--tx-40)] text-sm mb-5">Oracle Red Bull Racing</p>
         <div class="grid grid-cols-3 gap-3 text-center">
-          <div><p class="font-display text-2xl font-700">4</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Titles</p></div>
-          <div><p class="font-display text-2xl font-700">65</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Wins</p></div>
-          <div><p class="font-display text-2xl font-700">44</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Poles</p></div>
+          <div><p class="font-display text-2xl font-700">4</p><p class="text-[10px] uppercase text-[color:var(--tx-40)] tracking-wider">Titles</p></div>
+          <div><p class="font-display text-2xl font-700">65</p><p class="text-[10px] uppercase text-[color:var(--tx-40)] tracking-wider">Wins</p></div>
+          <div><p class="font-display text-2xl font-700">44</p><p class="text-[10px] uppercase text-[color:var(--tx-40)] tracking-wider">Poles</p></div>
         </div>
       </div>
 
@@ -321,7 +435,7 @@
         <div class="team-row">
           <div class="flex justify-between text-sm mb-2">
             <span class="font-display tracking-wide">Ferrari</span>
-            <span class="text-white/40">16 Constructors' Titles</span>
+            <span class="text-[color:var(--tx-40)]">16 Constructors' Titles</span>
           </div>
           <div class="h-2.5 rounded-full progress-track overflow-hidden">
             <div class="h-full rounded-full progress-fill team-bar" data-width="100"></div>
@@ -331,7 +445,7 @@
         <div class="team-row">
           <div class="flex justify-between text-sm mb-2">
             <span class="font-display tracking-wide">Williams</span>
-            <span class="text-white/40">9 Constructors' Titles</span>
+            <span class="text-[color:var(--tx-40)]">9 Constructors' Titles</span>
           </div>
           <div class="h-2.5 rounded-full progress-track overflow-hidden">
             <div class="h-full rounded-full progress-fill team-bar" data-width="56"></div>
@@ -341,7 +455,7 @@
         <div class="team-row">
           <div class="flex justify-between text-sm mb-2">
             <span class="font-display tracking-wide">Mercedes</span>
-            <span class="text-white/40">8 Constructors' Titles</span>
+            <span class="text-[color:var(--tx-40)]">8 Constructors' Titles</span>
           </div>
           <div class="h-2.5 rounded-full progress-track overflow-hidden">
             <div class="h-full rounded-full progress-fill team-bar" data-width="50"></div>
@@ -351,7 +465,7 @@
         <div class="team-row">
           <div class="flex justify-between text-sm mb-2">
             <span class="font-display tracking-wide">McLaren</span>
-            <span class="text-white/40">8 Constructors' Titles</span>
+            <span class="text-[color:var(--tx-40)]">8 Constructors' Titles</span>
           </div>
           <div class="h-2.5 rounded-full progress-track overflow-hidden">
             <div class="h-full rounded-full progress-fill team-bar" data-width="50"></div>
@@ -361,7 +475,7 @@
         <div class="team-row">
           <div class="flex justify-between text-sm mb-2">
             <span class="font-display tracking-wide">Red Bull Racing</span>
-            <span class="text-white/40">6 Constructors' Titles</span>
+            <span class="text-[color:var(--tx-40)]">6 Constructors' Titles</span>
           </div>
           <div class="h-2.5 rounded-full progress-track overflow-hidden">
             <div class="h-full rounded-full progress-fill team-bar" data-width="38"></div>
@@ -388,39 +502,39 @@
       <div class="circuit-card card-tilt glass rounded-2xl p-7">
         <p class="font-display text-xs tracking-widest text-racered2 mb-2">TEMPLE OF SPEED</p>
         <h3 class="font-display font-700 text-2xl mb-4">Monza, Italy</h3>
-        <div class="flex justify-between text-sm text-white/50 border-t border-white/10 pt-4">
+        <div class="flex justify-between text-sm text-[color:var(--tx-50)] border-t border-[color:var(--bd-10)] pt-4">
           <span>Lap Record</span>
-          <span class="text-white font-medium">1:19.307</span>
+          <span class="text-[color:var(--tx-100)] font-medium">1:19.307</span>
         </div>
-        <div class="flex justify-between text-sm text-white/50 pt-2">
+        <div class="flex justify-between text-sm text-[color:var(--tx-50)] pt-2">
           <span>Top Speed</span>
-          <span class="text-white font-medium">372 km/h</span>
+          <span class="text-[color:var(--tx-100)] font-medium">372 km/h</span>
         </div>
       </div>
 
       <div class="circuit-card card-tilt glass rounded-2xl p-7">
         <p class="font-display text-xs tracking-widest text-racered2 mb-2">HOME OF BRITISH RACING</p>
         <h3 class="font-display font-700 text-2xl mb-4">Silverstone, UK</h3>
-        <div class="flex justify-between text-sm text-white/50 border-t border-white/10 pt-4">
+        <div class="flex justify-between text-sm text-[color:var(--tx-50)] border-t border-[color:var(--bd-10)] pt-4">
           <span>Lap Record</span>
-          <span class="text-white font-medium">1:27.097</span>
+          <span class="text-[color:var(--tx-100)] font-medium">1:27.097</span>
         </div>
-        <div class="flex justify-between text-sm text-white/50 pt-2">
+        <div class="flex justify-between text-sm text-[color:var(--tx-50)] pt-2">
           <span>Top Speed</span>
-          <span class="text-white font-medium">342 km/h</span>
+          <span class="text-[color:var(--tx-100)] font-medium">342 km/h</span>
         </div>
       </div>
 
       <div class="circuit-card card-tilt glass rounded-2xl p-7">
         <p class="font-display text-xs tracking-widest text-racered2 mb-2">JEWEL OF MONACO</p>
         <h3 class="font-display font-700 text-2xl mb-4">Monte Carlo</h3>
-        <div class="flex justify-between text-sm text-white/50 border-t border-white/10 pt-4">
+        <div class="flex justify-between text-sm text-[color:var(--tx-50)] border-t border-[color:var(--bd-10)] pt-4">
           <span>Lap Record</span>
-          <span class="text-white font-medium">1:12.909</span>
+          <span class="text-[color:var(--tx-100)] font-medium">1:12.909</span>
         </div>
-        <div class="flex justify-between text-sm text-white/50 pt-2">
+        <div class="flex justify-between text-sm text-[color:var(--tx-50)] pt-2">
           <span>Top Speed</span>
-          <span class="text-white font-medium">296 km/h</span>
+          <span class="text-[color:var(--tx-100)] font-medium">296 km/h</span>
         </div>
       </div>
     </div>
@@ -439,42 +553,42 @@
     </div>
 
     <div class="relative pl-8 md:pl-12">
-      <div class="absolute left-[7px] md:left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-racered via-white/10 to-transparent"></div>
+      <div class="absolute left-[7px] md:left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-racered via-[color:var(--tx-10)] to-transparent"></div>
 
       <div class="timeline-item relative pb-12">
         <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-racered ring-4 ring-racered/20"></div>
         <p class="font-display text-xs tracking-widest text-racered2 mb-1">2021 — 2024</p>
         <h4 class="font-display font-700 text-lg mb-1">The Verstappen Era</h4>
-        <p class="text-white/50 text-sm max-w-xl">Red Bull's aerodynamic mastery and Max Verstappen's relentless pace produce four consecutive titles.</p>
+        <p class="text-[color:var(--tx-50)] text-sm max-w-xl">Red Bull's aerodynamic mastery and Max Verstappen's relentless pace produce four consecutive titles.</p>
       </div>
 
       <div class="timeline-item relative pb-12">
-        <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-white/30 ring-4 ring-white/5"></div>
+        <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-[color:var(--tx-30)] ring-4 ring-[color:var(--tx-5)]"></div>
         <p class="font-display text-xs tracking-widest text-racered2 mb-1">2014 — 2020</p>
         <h4 class="font-display font-700 text-lg mb-1">Hybrid Domination</h4>
-        <p class="text-white/50 text-sm max-w-xl">Mercedes' hybrid power unit ushers in seven straight Constructors' Championships.</p>
+        <p class="text-[color:var(--tx-50)] text-sm max-w-xl">Mercedes' hybrid power unit ushers in seven straight Constructors' Championships.</p>
       </div>
 
       <div class="timeline-item relative pb-12">
-        <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-white/30 ring-4 ring-white/5"></div>
+        <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-[color:var(--tx-30)] ring-4 ring-[color:var(--tx-5)]"></div>
         <p class="font-display text-xs tracking-widest text-racered2 mb-1">2000 — 2004</p>
         <h4 class="font-display font-700 text-lg mb-1">Schumacher's Ferrari Reign</h4>
-        <p class="text-white/50 text-sm max-w-xl">Five consecutive Drivers' titles cement Michael Schumacher and Ferrari as an unstoppable force.</p>
+        <p class="text-[color:var(--tx-50)] text-sm max-w-xl">Five consecutive Drivers' titles cement Michael Schumacher and Ferrari as an unstoppable force.</p>
       </div>
 
       <div class="timeline-item relative pb-2">
-        <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-white/30 ring-4 ring-white/5"></div>
+        <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-[color:var(--tx-30)] ring-4 ring-[color:var(--tx-5)]"></div>
         <p class="font-display text-xs tracking-widest text-racered2 mb-1">1988 — 1991</p>
         <h4 class="font-display font-700 text-lg mb-1">Senna vs. Prost</h4>
-        <p class="text-white/50 text-sm max-w-xl">McLaren's fiercest rivalry redefines racing intensity and driver mastery at the limit.</p>
+        <p class="text-[color:var(--tx-50)] text-sm max-w-xl">McLaren's fiercest rivalry redefines racing intensity and driver mastery at the limit.</p>
       </div>
     </div>
   </div>
 </section>
 
 <!-- FOOTER -->
-<footer class="relative z-10 border-t border-white/5 px-6 py-10">
-  <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-white/30">
+<footer class="relative z-10 border-t border-[color:var(--bd-5)] px-6 py-10">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-[color:var(--tx-30)]">
     <p class="font-display tracking-widest">APEX<span class="text-racered">.</span>RECORDS</p>
     <p>Concept dashboard — statistics for illustrative purposes.</p>
   </div>
@@ -482,6 +596,32 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+
+  /* ---------- Theme toggle ---------- */
+  const html = document.documentElement;
+  const toggleBtn = document.getElementById('theme-toggle');
+  const iconSun = document.getElementById('icon-sun');
+  const iconMoon = document.getElementById('icon-moon');
+
+  const syncIcons = (theme) => {
+    iconSun.classList.toggle('hidden', theme === 'light');
+    iconMoon.classList.toggle('hidden', theme !== 'light');
+  };
+  syncIcons(html.getAttribute('data-theme') || 'dark');
+
+  toggleBtn.addEventListener('click', () => {
+    const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('f1-theme', next);
+    syncIcons(next);
+    anime({
+      targets: toggleBtn,
+      rotate: next === 'light' ? [0, 180] : [0, -180],
+      scale: [1, 1.15, 1],
+      duration: 500,
+      easing: 'easeOutBack',
+    });
+  });
 
   /* ---------- Hero reveal ---------- */
   anime.timeline({ easing: 'easeOutExpo' })
