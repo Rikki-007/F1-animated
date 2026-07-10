@@ -37,6 +37,7 @@
       </div>
       <nav class="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide text-[color:var(--tx-60)]" id="nav-links">
         <a href="#overview" class="hover:text-[color:var(--tx-100)] transition-colors">Overview</a>
+        <a href="#data-hub" class="hover:text-[color:var(--tx-100)] transition-colors">Data Hub</a>
         <a href="#legends" class="hover:text-[color:var(--tx-100)] transition-colors">Legends</a>
         <a href="#teams" class="hover:text-[color:var(--tx-100)] transition-colors">Constructors</a>
         <a href="#circuits" class="hover:text-[color:var(--tx-100)] transition-colors">Circuits</a>
@@ -144,6 +145,43 @@
       <p class="mt-2 text-sm text-[color:var(--tx-50)]">Red Bull Racing, 2019</p>
     </div>
 
+  </div>
+</section>
+
+<!-- DATA HUB -->
+<section id="data-hub" class="relative px-6 pb-28 z-10">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex flex-wrap items-end justify-between gap-6 mb-10">
+      <div>
+        <p class="reveal-h font-display text-xs tracking-[0.4em] text-racered2 mb-3">LIVE TELEMETRY</p>
+        <h2 class="reveal-h font-display font-700 text-3xl md:text-4xl">F1 Data Hub</h2>
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <span id="hub-status" class="data-badge" data-state="live">
+          <span class="dot"></span>
+          <span id="hub-status-text">LOADING</span>
+        </span>
+        <select id="season-select" class="season-select" aria-label="Select season" disabled>
+          <option value="current">Current Season (Live)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="glass rounded-2xl p-4 md:p-6 overflow-hidden">
+      <div class="hidden md:grid grid-cols-[48px_1fr_140px_90px_70px] gap-4 px-3 pb-3 mb-2 border-b border-[color:var(--bd-10)] text-[10px] uppercase tracking-widest text-[color:var(--tx-40)]">
+        <span>Pos</span>
+        <span>Driver</span>
+        <span>Team</span>
+        <span class="text-right">Points</span>
+        <span class="text-right">Wins</span>
+      </div>
+      <div id="standings-list" class="space-y-2" aria-live="polite"></div>
+    </div>
+
+    <p id="hub-note" class="mt-3 text-xs text-[color:var(--tx-30)]">Click any driver to open their Hall of Fame bio card.</p>
+
+    <!-- Driver Hall of Fame bio panel -->
+    <div id="bio-panel" class="mt-6"></div>
   </div>
 </section>
 
@@ -383,6 +421,7 @@
 </footer>
 
 <script src="js/main.js"></script>
+<script src="js/f1Data.js"></script>
 
 </body>
 </html>
