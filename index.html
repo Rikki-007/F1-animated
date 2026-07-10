@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>APEX // F1 Records Dashboard</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          carbon: '#0a0a0d',
+          panel: '#111116',
+          panel2: '#16161d',
+          edge: '#26262f',
+          racered: '#e10600',
+          racered2: '#ff3b30',
+          gold: '#d4af37',
+          ice: '#7dd3fc',
+        },
+        fontFamily: {
+          display: ['"Orbitron"', 'sans-serif'],
+          body: ['"Rajdhani"', 'sans-serif'],
+        },
+      },
+    },
+  };
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: #0a0a0d;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(225,6,0,0.08), transparent 40%),
+      radial-gradient(circle at 85% 30%, rgba(125,211,252,0.06), transparent 45%),
+      linear-gradient(180deg, #0a0a0d 0%, #0c0c11 100%);
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  .font-display { font-family: 'Orbitron', sans-serif; }
+
+  /* grid overlay texture */
+  .grid-overlay {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
+  }
+
+  .noise {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  }
+
+  .glass {
+    background: linear-gradient(145deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(14px);
+  }
+
+  .card-tilt {
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: box-shadow 0.35s ease, border-color 0.35s ease;
+  }
+  .card-tilt:hover {
+    border-color: rgba(225,6,0,0.45);
+    box-shadow: 0 20px 60px -20px rgba(225,6,0,0.35), 0 0 0 1px rgba(225,6,0,0.15) inset;
+  }
+
+  .stat-glow {
+    text-shadow: 0 0 25px rgba(225,6,0,0.35);
+  }
+
+  .hairline {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  }
+
+  .speed-line {
+    position: absolute;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(225,6,0,0.6), transparent);
+  }
+
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: #0a0a0d; }
+  ::-webkit-scrollbar-thumb { background: #2a2a33; border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: #e10600; }
+
+  .reveal { opacity: 0; }
+
+  .progress-track {
+    background: rgba(255,255,255,0.06);
+  }
+  .progress-fill {
+    background: linear-gradient(90deg, #e10600, #ff3b30);
+    width: 0%;
+  }
+
+  .badge-live {
+    box-shadow: 0 0 0 0 rgba(225,6,0,0.6);
+  }
+
+  .num-tick {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .marquee-track {
+    display: flex;
+    width: max-content;
+  }
+
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+</style>
+</head>
+
+<body class="text-white overflow-x-hidden selection:bg-racered selection:text-white">
+
+<!-- background layers -->
+<div class="fixed inset-0 grid-overlay pointer-events-none z-0"></div>
+<div class="fixed inset-0 noise pointer-events-none z-0 mix-blend-overlay"></div>
+
+<!-- NAVBAR -->
+<header class="fixed top-0 inset-x-0 z-50">
+  <div class="glass border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3" id="nav-logo">
+        <div class="w-9 h-9 rounded-md bg-racered flex items-center justify-center font-display font-900 text-sm rotate-3">A</div>
+        <span class="font-display font-700 tracking-[0.25em] text-sm">APEX<span class="text-racered">.</span>RECORDS</span>
+      </div>
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide text-white/60" id="nav-links">
+        <a href="#overview" class="hover:text-white transition-colors">Overview</a>
+        <a href="#legends" class="hover:text-white transition-colors">Legends</a>
+        <a href="#teams" class="hover:text-white transition-colors">Constructors</a>
+        <a href="#circuits" class="hover:text-white transition-colors">Circuits</a>
+        <a href="#timeline" class="hover:text-white transition-colors">Timeline</a>
+      </nav>
+      <div class="flex items-center gap-2 text-xs font-display tracking-widest text-racered2">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-racered opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-racered"></span>
+        </span>
+        LIVE DATA
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section id="overview" class="relative pt-40 pb-28 px-6 z-10">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex flex-wrap items-end justify-between gap-8">
+      <div class="max-w-2xl">
+        <p class="reveal font-display text-xs tracking-[0.4em] text-racered2 mb-4" id="hero-eyebrow">FORMULA 1 &nbsp;/&nbsp; ALL-TIME ARCHIVE</p>
+        <h1 class="font-display font-900 leading-[0.95] text-5xl md:text-7xl">
+          <span class="reveal block" id="hero-l1">SPEED IS</span>
+          <span class="reveal block text-transparent bg-clip-text bg-gradient-to-r from-racered via-racered2 to-gold" id="hero-l2">HISTORY.</span>
+        </h1>
+        <p class="reveal mt-6 text-white/50 text-lg max-w-lg" id="hero-sub">
+          A living dashboard of every record that defines the pinnacle of motorsport — drivers, constructors, and the circuits that made them legends.
+        </p>
+      </div>
+      <div class="reveal glass rounded-2xl px-6 py-5 min-w-[220px]" id="hero-panel">
+        <p class="text-xs uppercase tracking-widest text-white/40 mb-1">Seasons Recorded</p>
+        <p class="font-display text-4xl font-700 num-tick" data-count="75" id="hero-counter">0</p>
+        <div class="mt-3 h-1 rounded-full progress-track overflow-hidden">
+          <div class="h-full rounded-full progress-fill" id="hero-bar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- marquee -->
+  <div class="mt-16 border-y border-white/5 py-3 overflow-hidden relative">
+    <div class="marquee-track" id="marquee">
+      <div class="flex items-center gap-10 pr-10 font-display text-sm tracking-widest text-white/25 whitespace-nowrap">
+        <span>MAX VERSTAPPEN</span><span class="text-racered">•</span>
+        <span>LEWIS HAMILTON</span><span class="text-racered">•</span>
+        <span>MICHAEL SCHUMACHER</span><span class="text-racered">•</span>
+        <span>AYRTON SENNA</span><span class="text-racered">•</span>
+        <span>RED BULL RACING</span><span class="text-racered">•</span>
+        <span>SCUDERIA FERRARI</span><span class="text-racered">•</span>
+        <span>MERCEDES-AMG</span><span class="text-racered">•</span>
+        <span>MONZA</span><span class="text-racered">•</span>
+        <span>SILVERSTONE</span><span class="text-racered">•</span>
+      </div>
+      <div class="flex items-center gap-10 pr-10 font-display text-sm tracking-widest text-white/25 whitespace-nowrap">
+        <span>MAX VERSTAPPEN</span><span class="text-racered">•</span>
+        <span>LEWIS HAMILTON</span><span class="text-racered">•</span>
+        <span>MICHAEL SCHUMACHER</span><span class="text-racered">•</span>
+        <span>AYRTON SENNA</span><span class="text-racered">•</span>
+        <span>RED BULL RACING</span><span class="text-racered">•</span>
+        <span>SCUDERIA FERRARI</span><span class="text-racered">•</span>
+        <span>MERCEDES-AMG</span><span class="text-racered">•</span>
+        <span>MONZA</span><span class="text-racered">•</span>
+        <span>SILVERSTONE</span><span class="text-racered">•</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- KEY STATS -->
+<section class="relative px-6 pb-24 z-10">
+  <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-5">
+
+    <div class="reveal-stat card-tilt glass rounded-2xl p-6 relative overflow-hidden">
+      <div class="speed-line top-4 left-0 w-1/2"></div>
+      <p class="text-xs uppercase tracking-widest text-white/40 mb-3">Most World Titles</p>
+      <p class="font-display font-900 text-4xl stat-glow"><span class="stat-num" data-target="7">0</span></p>
+      <p class="mt-2 text-sm text-white/50">Hamilton &amp; Schumacher</p>
+    </div>
+
+    <div class="reveal-stat card-tilt glass rounded-2xl p-6 relative overflow-hidden">
+      <div class="speed-line top-4 left-0 w-1/2"></div>
+      <p class="text-xs uppercase tracking-widest text-white/40 mb-3">Most Race Wins</p>
+      <p class="font-display font-900 text-4xl stat-glow"><span class="stat-num" data-target="105">0</span></p>
+      <p class="mt-2 text-sm text-white/50">Lewis Hamilton</p>
+    </div>
+
+    <div class="reveal-stat card-tilt glass rounded-2xl p-6 relative overflow-hidden">
+      <div class="speed-line top-4 left-0 w-1/2"></div>
+      <p class="text-xs uppercase tracking-widest text-white/40 mb-3">Most Pole Positions</p>
+      <p class="font-display font-900 text-4xl stat-glow"><span class="stat-num" data-target="104">0</span></p>
+      <p class="mt-2 text-sm text-white/50">Lewis Hamilton</p>
+    </div>
+
+    <div class="reveal-stat card-tilt glass rounded-2xl p-6 relative overflow-hidden">
+      <div class="speed-line top-4 left-0 w-1/2"></div>
+      <p class="text-xs uppercase tracking-widest text-white/40 mb-3">Fastest Pit Stop</p>
+      <p class="font-display font-900 text-4xl stat-glow"><span class="stat-num" data-target="1" data-suffix="s" data-decimal="82">0</span></p>
+      <p class="mt-2 text-sm text-white/50">Red Bull Racing, 2019</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- LEGENDS -->
+<section id="legends" class="relative px-6 pb-28 z-10">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex items-end justify-between mb-10">
+      <div>
+        <p class="reveal-h font-display text-xs tracking-[0.4em] text-racered2 mb-3">DRIVER ARCHIVE</p>
+        <h2 class="reveal-h font-display font-700 text-3xl md:text-4xl">Hall of Legends</h2>
+      </div>
+      <div class="hairline h-px w-1/3 hidden md:block"></div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <div class="driver-card card-tilt glass rounded-2xl p-7 relative group">
+        <div class="flex justify-between items-start mb-6">
+          <span class="font-display text-5xl font-900 text-white/10 group-hover:text-racered/30 transition-colors">01</span>
+          <span class="text-xs font-display tracking-widest text-gold border border-gold/30 rounded-full px-3 py-1">GOAT</span>
+        </div>
+        <h3 class="font-display font-700 text-xl mb-1">Lewis Hamilton</h3>
+        <p class="text-white/40 text-sm mb-5">Mercedes-AMG Petronas</p>
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div><p class="font-display text-2xl font-700">7</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Titles</p></div>
+          <div><p class="font-display text-2xl font-700">105</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Wins</p></div>
+          <div><p class="font-display text-2xl font-700">104</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Poles</p></div>
+        </div>
+      </div>
+
+      <div class="driver-card card-tilt glass rounded-2xl p-7 relative group">
+        <div class="flex justify-between items-start mb-6">
+          <span class="font-display text-5xl font-900 text-white/10 group-hover:text-racered/30 transition-colors">02</span>
+          <span class="text-xs font-display tracking-widest text-ice border border-ice/30 rounded-full px-3 py-1">RED BARON</span>
+        </div>
+        <h3 class="font-display font-700 text-xl mb-1">Michael Schumacher</h3>
+        <p class="text-white/40 text-sm mb-5">Scuderia Ferrari</p>
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div><p class="font-display text-2xl font-700">7</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Titles</p></div>
+          <div><p class="font-display text-2xl font-700">91</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Wins</p></div>
+          <div><p class="font-display text-2xl font-700">68</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Poles</p></div>
+        </div>
+      </div>
+
+      <div class="driver-card card-tilt glass rounded-2xl p-7 relative group">
+        <div class="flex justify-between items-start mb-6">
+          <span class="font-display text-5xl font-900 text-white/10 group-hover:text-racered/30 transition-colors">03</span>
+          <span class="text-xs font-display tracking-widest text-racered2 border border-racered/30 rounded-full px-3 py-1">CURRENT</span>
+        </div>
+        <h3 class="font-display font-700 text-xl mb-1">Max Verstappen</h3>
+        <p class="text-white/40 text-sm mb-5">Oracle Red Bull Racing</p>
+        <div class="grid grid-cols-3 gap-3 text-center">
+          <div><p class="font-display text-2xl font-700">4</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Titles</p></div>
+          <div><p class="font-display text-2xl font-700">65</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Wins</p></div>
+          <div><p class="font-display text-2xl font-700">44</p><p class="text-[10px] uppercase text-white/40 tracking-wider">Poles</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- CONSTRUCTORS -->
+<section id="teams" class="relative px-6 pb-28 z-10">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex items-end justify-between mb-10">
+      <div>
+        <p class="reveal-h font-display text-xs tracking-[0.4em] text-racered2 mb-3">TEAM STANDINGS</p>
+        <h2 class="reveal-h font-display font-700 text-3xl md:text-4xl">Constructor Dominance</h2>
+      </div>
+      <div class="hairline h-px w-1/3 hidden md:block"></div>
+    </div>
+
+    <div class="glass rounded-2xl p-4 md:p-8">
+      <div class="space-y-5">
+
+        <div class="team-row">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="font-display tracking-wide">Ferrari</span>
+            <span class="text-white/40">16 Constructors' Titles</span>
+          </div>
+          <div class="h-2.5 rounded-full progress-track overflow-hidden">
+            <div class="h-full rounded-full progress-fill team-bar" data-width="100"></div>
+          </div>
+        </div>
+
+        <div class="team-row">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="font-display tracking-wide">Williams</span>
+            <span class="text-white/40">9 Constructors' Titles</span>
+          </div>
+          <div class="h-2.5 rounded-full progress-track overflow-hidden">
+            <div class="h-full rounded-full progress-fill team-bar" data-width="56"></div>
+          </div>
+        </div>
+
+        <div class="team-row">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="font-display tracking-wide">Mercedes</span>
+            <span class="text-white/40">8 Constructors' Titles</span>
+          </div>
+          <div class="h-2.5 rounded-full progress-track overflow-hidden">
+            <div class="h-full rounded-full progress-fill team-bar" data-width="50"></div>
+          </div>
+        </div>
+
+        <div class="team-row">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="font-display tracking-wide">McLaren</span>
+            <span class="text-white/40">8 Constructors' Titles</span>
+          </div>
+          <div class="h-2.5 rounded-full progress-track overflow-hidden">
+            <div class="h-full rounded-full progress-fill team-bar" data-width="50"></div>
+          </div>
+        </div>
+
+        <div class="team-row">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="font-display tracking-wide">Red Bull Racing</span>
+            <span class="text-white/40">6 Constructors' Titles</span>
+          </div>
+          <div class="h-2.5 rounded-full progress-track overflow-hidden">
+            <div class="h-full rounded-full progress-fill team-bar" data-width="38"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CIRCUITS -->
+<section id="circuits" class="relative px-6 pb-28 z-10">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex items-end justify-between mb-10">
+      <div>
+        <p class="reveal-h font-display text-xs tracking-[0.4em] text-racered2 mb-3">TRACK RECORDS</p>
+        <h2 class="reveal-h font-display font-700 text-3xl md:text-4xl">Legendary Circuits</h2>
+      </div>
+      <div class="hairline h-px w-1/3 hidden md:block"></div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="circuit-card card-tilt glass rounded-2xl p-7">
+        <p class="font-display text-xs tracking-widest text-racered2 mb-2">TEMPLE OF SPEED</p>
+        <h3 class="font-display font-700 text-2xl mb-4">Monza, Italy</h3>
+        <div class="flex justify-between text-sm text-white/50 border-t border-white/10 pt-4">
+          <span>Lap Record</span>
+          <span class="text-white font-medium">1:19.307</span>
+        </div>
+        <div class="flex justify-between text-sm text-white/50 pt-2">
+          <span>Top Speed</span>
+          <span class="text-white font-medium">372 km/h</span>
+        </div>
+      </div>
+
+      <div class="circuit-card card-tilt glass rounded-2xl p-7">
+        <p class="font-display text-xs tracking-widest text-racered2 mb-2">HOME OF BRITISH RACING</p>
+        <h3 class="font-display font-700 text-2xl mb-4">Silverstone, UK</h3>
+        <div class="flex justify-between text-sm text-white/50 border-t border-white/10 pt-4">
+          <span>Lap Record</span>
+          <span class="text-white font-medium">1:27.097</span>
+        </div>
+        <div class="flex justify-between text-sm text-white/50 pt-2">
+          <span>Top Speed</span>
+          <span class="text-white font-medium">342 km/h</span>
+        </div>
+      </div>
+
+      <div class="circuit-card card-tilt glass rounded-2xl p-7">
+        <p class="font-display text-xs tracking-widest text-racered2 mb-2">JEWEL OF MONACO</p>
+        <h3 class="font-display font-700 text-2xl mb-4">Monte Carlo</h3>
+        <div class="flex justify-between text-sm text-white/50 border-t border-white/10 pt-4">
+          <span>Lap Record</span>
+          <span class="text-white font-medium">1:12.909</span>
+        </div>
+        <div class="flex justify-between text-sm text-white/50 pt-2">
+          <span>Top Speed</span>
+          <span class="text-white font-medium">296 km/h</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section id="timeline" class="relative px-6 pb-32 z-10">
+  <div class="max-w-7xl mx-auto">
+    <div class="flex items-end justify-between mb-12">
+      <div>
+        <p class="reveal-h font-display text-xs tracking-[0.4em] text-racered2 mb-3">ERA BY ERA</p>
+        <h2 class="reveal-h font-display font-700 text-3xl md:text-4xl">Championship Timeline</h2>
+      </div>
+      <div class="hairline h-px w-1/3 hidden md:block"></div>
+    </div>
+
+    <div class="relative pl-8 md:pl-12">
+      <div class="absolute left-[7px] md:left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-racered via-white/10 to-transparent"></div>
+
+      <div class="timeline-item relative pb-12">
+        <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-racered ring-4 ring-racered/20"></div>
+        <p class="font-display text-xs tracking-widest text-racered2 mb-1">2021 — 2024</p>
+        <h4 class="font-display font-700 text-lg mb-1">The Verstappen Era</h4>
+        <p class="text-white/50 text-sm max-w-xl">Red Bull's aerodynamic mastery and Max Verstappen's relentless pace produce four consecutive titles.</p>
+      </div>
+
+      <div class="timeline-item relative pb-12">
+        <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-white/30 ring-4 ring-white/5"></div>
+        <p class="font-display text-xs tracking-widest text-racered2 mb-1">2014 — 2020</p>
+        <h4 class="font-display font-700 text-lg mb-1">Hybrid Domination</h4>
+        <p class="text-white/50 text-sm max-w-xl">Mercedes' hybrid power unit ushers in seven straight Constructors' Championships.</p>
+      </div>
+
+      <div class="timeline-item relative pb-12">
+        <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-white/30 ring-4 ring-white/5"></div>
+        <p class="font-display text-xs tracking-widest text-racered2 mb-1">2000 — 2004</p>
+        <h4 class="font-display font-700 text-lg mb-1">Schumacher's Ferrari Reign</h4>
+        <p class="text-white/50 text-sm max-w-xl">Five consecutive Drivers' titles cement Michael Schumacher and Ferrari as an unstoppable force.</p>
+      </div>
+
+      <div class="timeline-item relative pb-2">
+        <div class="absolute -left-8 md:-left-12 top-1.5 w-3.5 h-3.5 rounded-full bg-white/30 ring-4 ring-white/5"></div>
+        <p class="font-display text-xs tracking-widest text-racered2 mb-1">1988 — 1991</p>
+        <h4 class="font-display font-700 text-lg mb-1">Senna vs. Prost</h4>
+        <p class="text-white/50 text-sm max-w-xl">McLaren's fiercest rivalry redefines racing intensity and driver mastery at the limit.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="relative z-10 border-t border-white/5 px-6 py-10">
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-white/30">
+    <p class="font-display tracking-widest">APEX<span class="text-racered">.</span>RECORDS</p>
+    <p>Concept dashboard — statistics for illustrative purposes.</p>
+  </div>
+</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  /* ---------- Hero reveal ---------- */
+  anime.timeline({ easing: 'easeOutExpo' })
+    .add({ targets: '#hero-eyebrow', opacity: [0,1], translateY: [16,0], duration: 700 })
+    .add({ targets: '#hero-l1', opacity: [0,1], translateY: [40,0], duration: 800 }, '-=450')
+    .add({ targets: '#hero-l2', opacity: [0,1], translateY: [40,0], duration: 800 }, '-=600')
+    .add({ targets: '#hero-sub', opacity: [0,1], translateY: [24,0], duration: 700 }, '-=500')
+    .add({ targets: '#hero-panel', opacity: [0,1], translateY: [24,0], scale: [0.96,1], duration: 700 }, '-=600')
+    .add({ targets: '#nav-logo, #nav-links a', opacity: [0,1], translateY: [-10,0], duration: 500, delay: anime.stagger(60) }, '-=900');
+
+  /* hero counter */
+  const heroCounter = { val: 0 };
+  anime({
+    targets: heroCounter,
+    val: 75,
+    round: 1,
+    duration: 1800,
+    delay: 600,
+    easing: 'easeOutCubic',
+    update: () => document.getElementById('hero-counter').textContent = heroCounter.val,
+  });
+  anime({
+    targets: '#hero-bar',
+    width: ['0%','100%'],
+    duration: 1800,
+    delay: 600,
+    easing: 'easeOutCubic',
+  });
+
+  /* marquee scroll */
+  anime({
+    targets: '#marquee',
+    translateX: '-50%',
+    duration: 22000,
+    easing: 'linear',
+    loop: true,
+  });
+
+  /* ---------- Scroll reveal via IntersectionObserver ---------- */
+  const revealGroup = (selector, animProps) => {
+    const els = document.querySelectorAll(selector);
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          anime({ targets: entry.target, ...animProps });
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2 });
+    els.forEach((el) => io.observe(el));
+  };
+
+  revealGroup('.reveal-h', {
+    opacity: [0,1], translateY: [24,0], duration: 700, easing: 'easeOutExpo',
+  });
+
+  revealGroup('.reveal-stat', {
+    opacity: [0,1], translateY: [30,0], duration: 700, easing: 'easeOutExpo', delay: anime.stagger(100),
+  });
+
+  revealGroup('.driver-card', {
+    opacity: [0,1], translateY: [40,0], scale: [0.96,1], duration: 800, easing: 'easeOutExpo', delay: anime.stagger(120),
+  });
+
+  revealGroup('.circuit-card', {
+    opacity: [0,1], translateY: [40,0], duration: 800, easing: 'easeOutExpo', delay: anime.stagger(120),
+  });
+
+  revealGroup('.timeline-item', {
+    opacity: [0,1], translateX: [-24,0], duration: 700, easing: 'easeOutExpo', delay: anime.stagger(150),
+  });
+
+  document.querySelectorAll('.reveal-stat, .driver-card, .circuit-card, .timeline-item').forEach(el => el.style.opacity = 0);
+
+  /* ---------- Animated stat numbers ---------- */
+  const statEls = document.querySelectorAll('.stat-num');
+  const statIO = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const target = parseFloat(el.dataset.target);
+      const decimal = el.dataset.decimal;
+      const suffix = el.dataset.suffix || '';
+      const obj = { val: 0 };
+      anime({
+        targets: obj,
+        val: target,
+        duration: 1600,
+        easing: 'easeOutCubic',
+        update: () => {
+          if (decimal !== undefined) {
+            el.textContent = obj.val.toFixed(0) + '.' + decimal + suffix;
+          } else {
+            el.textContent = Math.round(obj.val) + suffix;
+          }
+        },
+      });
+      statIO.unobserve(el);
+    });
+  }, { threshold: 0.4 });
+  statEls.forEach((el) => statIO.observe(el));
+
+  /* ---------- Team bar widths ---------- */
+  const teamBars = document.querySelectorAll('.team-bar');
+  const barIO = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      anime({
+        targets: el,
+        width: el.dataset.width + '%',
+        duration: 1400,
+        easing: 'easeOutExpo',
+      });
+      barIO.unobserve(el);
+    });
+  }, { threshold: 0.3 });
+  teamBars.forEach((el) => barIO.observe(el));
+
+  /* ---------- Card tilt on hover ---------- */
+  const tiltEls = document.querySelectorAll('.card-tilt');
+  tiltEls.forEach((card) => {
+    card.style.transform = 'perspective(900px)';
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const rotateX = ((y / rect.height) - 0.5) * -10;
+      const rotateY = ((x / rect.width) - 0.5) * 10;
+      anime({
+        targets: card,
+        rotateX,
+        rotateY,
+        scale: 1.02,
+        duration: 300,
+        easing: 'easeOutQuad',
+      });
+    });
+    card.addEventListener('mouseleave', () => {
+      anime({
+        targets: card,
+        rotateX: 0,
+        rotateY: 0,
+        scale: 1,
+        duration: 500,
+        easing: 'easeOutElastic(1, .6)',
+      });
+    });
+  });
+
+});
+</script>
+
+</body>
+</html>
