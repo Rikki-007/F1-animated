@@ -36,16 +36,19 @@ document.addEventListener('DOMContentLoaded', () => {
     .add({ targets: '#hero-panel', opacity: [0,1], translateY: [24,0], scale: [0.96,1], duration: 700 }, '-=600')
     .add({ targets: '#nav-logo, #nav-links a', opacity: [0,1], translateY: [-10,0], duration: 500, delay: anime.stagger(60) }, '-=900');
 
-  /* hero counter */
+  /* hero counter — computed from the current year so it never goes stale */
+  const seasonsRecorded = new Date().getFullYear() - 1950 + 1;
+  const heroCounterEl = document.getElementById('hero-counter');
+  heroCounterEl.dataset.count = String(seasonsRecorded);
   const heroCounter = { val: 0 };
   anime({
     targets: heroCounter,
-    val: 75,
+    val: seasonsRecorded,
     round: 1,
     duration: 1800,
     delay: 600,
     easing: 'easeOutCubic',
-    update: () => document.getElementById('hero-counter').textContent = heroCounter.val,
+    update: () => heroCounterEl.textContent = heroCounter.val,
   });
   anime({
     targets: '#hero-bar',

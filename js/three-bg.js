@@ -94,11 +94,68 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
   group.add(new THREE.Points(geometry, material));
   scene.add(group);
 
+  /* ---------- Signature 3D objects: one wireframe per section, crossfading
+   * as you scroll, with cursor-driven tilt and proximity glow. ---------- */
+  const SECTION_IDS = ['overview', 'data-hub', 'legends', 'teams', 'circuits', 'timeline'];
+  const sectionEls = SECTION_IDS.map((id) => document.getElementById(id));
+
+  const objectDefs = [
+    { geo: new THREE.IcosahedronGeometry(80, 1), color: 0xe10600 },
+    { geo: new THREE.SphereGeometry(78, 16, 12), color: 0x7dd3fc },
+    { geo: new THREE.OctahedronGeometry(85, 0), color: 0xd4af37 },
+    { geo: new THREE.TorusGeometry(66, 22, 8, 24), color: 0xff3b30 },
+    { geo: new THREE.TorusKnotGeometry(56, 14, 100, 12), color: 0x7dd3fc },
+    { geo: new THREE.DodecahedronGeometry(78, 0), color: 0xd4af37 },
+  ];
+
+  const objectsGroup = new THREE.Group();
+  objectsGroup.position.set(260, 10, -40);
+  scene.add(objectsGroup);
+
+  const signatureMeshes = objectDefs.map(({ geo, color }) => {
+    const holder = new THREE.Group();
+    const lineMat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 });
+    const lines = new THREE.LineSegments(new THREE.WireframeGeometry(geo), lineMat);
+    const fillMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, side: THREE.BackSide });
+    const fill = new THREE.Mesh(geo, fillMat);
+    holder.add(fill, lines);
+    objectsGroup.add(holder);
+    return { holder, lineMat, fillMat };
+  });
+
+  let activeSection = 0;
+  const updateActiveSection = () => {
+    const probeY = window.innerHeight * 0.45;
+    let closestIdx = 0;
+    let closestDist = Infinity;
+    sectionEls.forEach((el, i) => {
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      const dist = Math.abs(mid - probeY);
+      if (dist < closestDist) { closestDist = dist; closestIdx = i; }
+    });
+    activeSection = closestIdx;
+  };
+  window.addEventListener('scroll', updateActiveSection, { passive: true });
+  updateActiveSection();
+
+  const mousePx = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  window.addEventListener('mousemove', (e) => {
+    mousePx.x = e.clientX;
+    mousePx.y = e.clientY;
+  }, { passive: true });
+  const projected = new THREE.Vector3();
+  let proximityScale = 1;
+
+  let themeOpacityScale = 1;
+
   const applyTheme = (theme) => {
     const isLight = theme === 'light';
     material.uniforms.uOpacity.value = isLight ? 0.5 : 0.85;
     material.blending = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
     material.needsUpdate = true;
+    themeOpacityScale = isLight ? 0.6 : 1;
   };
   applyTheme(document.documentElement.getAttribute('data-theme') || 'dark');
   window.addEventListener('f1-theme-change', (e) => applyTheme(e.detail.theme));
@@ -148,8 +205,39 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
       group.rotation.x = pointer.y * 0.15 + Math.sin(t * 0.12) * 0.03;
       camera.position.z = 620 - boost * 16;
       boost *= 0.92;
+
+      objectsGroup.rotation.y += 0.0026;
+      objectsGroup.rotation.x = pointer.y * 0.55 + Math.sin(t * 0.2) * 0.05;
+      objectsGroup.rotation.z = pointer.x * 0.35;
+
+      projected.copy(objectsGroup.position).project(camera);
+      const screenX = (projected.x * 0.5 + 0.5) * width;
+      const screenY = (-projected.y * 0.5 + 0.5) * height;
+      const dx = mousePx.x - screenX;
+      const dy = mousePx.y - screenY;
+      const nearCursor = Math.sqrt(dx * dx + dy * dy) < 260;
+      proximityScale += ((nearCursor ? 1.18 : 1) - proximityScale) * 0.08;
+      objectsGroup.scale.setScalar(proximityScale);
+
+      signatureMeshes.forEach(({ holder, lineMat, fillMat }, i) => {
+        const isActive = i === activeSection;
+        const targetLine = (isActive ? 0.85 : 0) * themeOpacityScale;
+        const targetFill = (isActive ? 0.07 : 0) * themeOpacityScale;
+        lineMat.opacity += (targetLine - lineMat.opacity) * 0.06;
+        fillMat.opacity += (targetFill - fillMat.opacity) * 0.06;
+        const targetScale = isActive ? 1 : 0.82;
+        holder.scale.x += (targetScale - holder.scale.x) * 0.08;
+        holder.scale.y = holder.scale.z = holder.scale.x;
+        holder.rotation.y += 0.01 + i * 0.002;
+      });
     } else {
       group.rotation.y = scrollFrac * Math.PI * 0.4;
+      objectsGroup.rotation.y = scrollFrac * Math.PI * 0.4;
+      signatureMeshes.forEach(({ lineMat, fillMat }, i) => {
+        const isActive = i === activeSection;
+        lineMat.opacity = (isActive ? 0.85 : 0) * themeOpacityScale;
+        fillMat.opacity = (isActive ? 0.07 : 0) * themeOpacityScale;
+      });
     }
 
     renderer.render(scene, camera);

@@ -74,6 +74,28 @@
 
   const GENERIC_BIO = 'Full curated career statistics aren’t available for this driver yet — the figures below reflect their standing for the selected season only.';
 
+  /* ---------- Keep the "Most Race Wins" key stat live ----------
+   * Career wins through the end of the last completed season are static
+   * (there's no cheap live "all-time records" endpoint), but the current
+   * season's wins for the record holder ARE already in the standings
+   * response we fetch anyway, so add them on top instead of letting the
+   * tile go stale as the season progresses. */
+  const WINS_RECORD_BASELINE = { driverId: 'hamilton', priorWins: 105 };
+
+  function updateWinsRecord(list) {
+    const el = document.getElementById('stat-race-wins');
+    if (!el) return;
+    const driver = list.find((d) => d.driverId === WINS_RECORD_BASELINE.driverId);
+    if (!driver) return;
+    const total = WINS_RECORD_BASELINE.priorWins + driver.wins;
+    el.dataset.target = String(total);
+    if (el.textContent !== '0') {
+      // Section was already scrolled into view and counted up before this
+      // resolved — patch the number in place rather than re-animating.
+      el.textContent = String(total);
+    }
+  }
+
   /* ---------- Fetch helpers ---------- */
   async function fetchWithTimeout(url, timeoutMs) {
     const controller = new AbortController();
@@ -349,6 +371,7 @@
       if (mySeq !== loadSeq) return; // a newer season was requested meanwhile; discard this stale response
       currentDriverList = result.list;
       updateStatusBadge(result);
+      if (seasonValue === 'current') updateWinsRecord(result.list);
       await renderStandings(listContainer, result);
       if (mySeq !== loadSeq) return; // guard again in case a newer request landed mid-animation
       select.disabled = false;
