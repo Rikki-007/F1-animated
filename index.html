@@ -22,15 +22,31 @@
     // strands the page invisible.
     var html = document.documentElement;
     html.classList.add('js-loading', 'js-content-pending');
+    // Longer than before: js/three-bg.js now downloads a ~4MB GLB model,
+    // which can take a while on a slow connection, on top of the rest of
+    // the intro sequence.
     setTimeout(function () {
       html.classList.remove('js-loading', 'js-content-pending');
-    }, 14000);
+    }, 26000);
   })();
 </script>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
 <script src="js/tailwind-config.js"></script>
+
+<!-- Lets js/three-bg.js import GLTFLoader.js from the three.js CDN build —
+     that addon internally does `import * as THREE from 'three'` (a bare
+     specifier), which only resolves with an import map; a plain CDN URL
+     import would fail with "Failed to resolve module specifier 'three'". -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">

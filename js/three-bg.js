@@ -1,4 +1,6 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 (() => {
   const html = document.documentElement;
@@ -109,152 +111,113 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
   particleGroup.add(new THREE.Points(geometry, material));
   scene.add(particleGroup);
 
-  /* ================= F1 car: built from primitives, one per section ==============
-   * No 3D model asset is available, so the car is assembled from simple
-   * geometry in the same wireframe-HUD style as the rest of the site — each
-   * part built from several pieces so it reads as an actual component
-   * rather than a bare primitive. Each of the six parts belongs to its own
-   * page section and docks at its own spot (front wing→Overview,
-   * halo→Data Hub, wheel→Legends, sidepods→Constructors, tyres→Circuits,
-   * rear wing→Timeline); only the active section's part is visible. */
-  const SECTION_IDS = ['overview', 'data-hub', 'legends', 'teams', 'circuits', 'timeline'];
-  const sectionEls = SECTION_IDS.map((id) => document.getElementById(id));
-
-  const DOCKED_POSITIONS = [
-    [145, 60, -30],
-    [-130, 26, -40],
-    [155, -20, -35],
-    [-150, -52, -30],
-    [115, 78, -45],
-    [-105, -90, -35],
-  ];
+  /* ================= F1 car: real GLB model, exploded-view rig ==================
+   * assets/f1_car.glb is an 11-mesh model (Object_0..Object_10) with no
+   * per-mesh naming/metadata distinguishing which real car component each
+   * one is — it's the output of an STL cleanup/material-merge pipeline, not
+   * an authored, labelled car-parts scene. So instead of claiming mesh N
+   * "is" the front wing (which would be fabricated), each mesh is treated
+   * as its own generic component slot, cycled through by overall scroll
+   * position (not tied to the page's 6 content sections). Each part's
+   * "exploded" position is computed from its own geometry — the direction
+   * from the whole model's center through that mesh's own center — rather
+   * than hand-authored per-part coordinates. */
+  const MODEL_URL = './assets/f1_car.glb';
+  const CAR_COLOR = 0xe10600;
+  const NORMALIZED_LENGTH = 300; // world units, matches the previous hand-built car's scale
+  const EXPLODE_DISTANCE = 150;
+  const SCATTER_ANCHOR = new THREE.Vector3(150, 20, -40); // keeps the exploded cluster in the same "main focus" spot used before
   const PART_SCALE = 1.9;
 
   const PART_INFO = [
-    { label: 'FRONT WING & NOSE', title: 'First Point of Airflow', fact: 'The front wing shapes airflow for the entire car — teams run thousands of CFD simulations to perfect its curvature.' },
-    { label: 'HALO & COCKPIT', title: 'Built to Deflect 12 Tonnes', fact: 'Introduced in 2018, the titanium halo can withstand the static weight of a London bus without deforming.' },
-    { label: 'STEERING WHEEL', title: 'Mission Control', fact: 'A modern F1 wheel packs over 25 buttons and dials, letting drivers adjust brake bias and engine maps mid-corner.' },
-    { label: 'SIDEPODS & ENGINE COVER', title: 'Cooling Under Pressure', fact: 'Sidepods duct air through radiators handling engine temperatures north of 1,000°C.' },
-    { label: 'WHEELS & TYRES', title: 'The Only Contact With The Track', fact: 'Tyres reach surface temperatures over 100°C, with the contact patch no bigger than a postcard.' },
-    { label: 'REAR WING & DIFFUSER', title: 'Traction Out Of The Corner', fact: 'The diffuser accelerates airflow under the car, generating downforce without adding drag.' },
+    { label: 'COMPONENT 01', title: 'Precision Composite Structure', fact: 'Modern F1 bodywork is almost entirely carbon-fibre composite — around five times stronger than steel at a fraction of the weight.' },
+    { label: 'COMPONENT 02', title: 'Aerodynamic Load Path', fact: 'Every exterior surface on an F1 car is shaped to manage airflow — nothing is purely cosmetic.' },
+    { label: 'COMPONENT 03', title: 'Sub-Millimetre Tolerances', fact: 'F1 components are machined to tolerances as fine as 5 microns — a fraction of the width of a human hair.' },
+    { label: 'COMPONENT 04', title: 'Built for Rapid Replacement', fact: 'Teams can strip and rebuild major bodywork sections in a pit stop lasting under three seconds.' },
+    { label: 'COMPONENT 05', title: 'Heat Under Pressure', fact: 'Surface temperatures across the car can exceed 200°C during a race, driving every material choice.' },
+    { label: 'COMPONENT 06', title: 'CFD-Validated Geometry', fact: 'Teams run millions of core-hours of computational fluid dynamics before a single part is machined.' },
+    { label: 'COMPONENT 07', title: 'Structural Crash Protection', fact: 'The survival cell alone must pass over a dozen FIA crash tests before a chassis is homologated.' },
+    { label: 'COMPONENT 08', title: 'Weight Distribution', fact: 'Teams add ballast to hit the minimum weight limit precisely where it helps balance, not just to reach the number.' },
+    { label: 'COMPONENT 09', title: 'Vibration-Tuned Mounting', fact: 'Components are mounted to damp resonance from an engine spinning past 10,000 RPM.' },
+    { label: 'COMPONENT 10', title: 'Regulated Geometry', fact: 'Every surface sits inside FIA-mandated bodywork boxes — even a few millimetres out of spec voids a part.' },
+    { label: 'COMPONENT 11', title: 'The Final Assembly', fact: 'A complete F1 car is built from roughly 80,000 individual components, all engineered to work as one system.' },
   ];
-
-  const CAR_PART_DEFS = [
-    { // 0: Overview — front wing & nose
-      color: 0xe10600,
-      pieces: [
-        { geo: new THREE.ConeGeometry(20, 90, 8), pos: [0, -5, 150], rot: [-Math.PI / 2, 0, 0] },
-        { geo: new THREE.ConeGeometry(8, 34, 8), pos: [0, -5, 195], rot: [-Math.PI / 2, 0, 0] },
-        { geo: new THREE.BoxGeometry(120, 4, 20), pos: [0, -22, 178] },
-        { geo: new THREE.BoxGeometry(110, 3, 14), pos: [0, -13, 172] },
-        { geo: new THREE.BoxGeometry(4, 18, 20), pos: [-58, -14, 178] },
-        { geo: new THREE.BoxGeometry(4, 18, 20), pos: [58, -14, 178] },
-        { geo: new THREE.BoxGeometry(2, 10, 14), pos: [-25, -28, 175] },
-        { geo: new THREE.BoxGeometry(2, 10, 14), pos: [25, -28, 175] },
-      ],
-    },
-    { // 1: Data Hub — halo & cockpit
-      color: 0x7dd3fc,
-      pieces: [
-        { geo: new THREE.BoxGeometry(66, 20, 130), pos: [0, 8, 10] },
-        { geo: new THREE.TorusGeometry(24, 3, 6, 14), pos: [0, 44, 30], rot: [1.15, 0, 0] },
-        { geo: new THREE.TorusGeometry(20, 2, 6, 12), pos: [0, 14, 35], rot: [Math.PI / 2, 0, 0] },
-        { geo: new THREE.CylinderGeometry(2.5, 2.5, 46, 8), pos: [0, 26, 56], rot: [0.55, 0, 0] },
-        { geo: new THREE.CylinderGeometry(2, 2, 36, 8), pos: [-17, 26, 12], rot: [0, 0, 0.4] },
-        { geo: new THREE.CylinderGeometry(2, 2, 36, 8), pos: [17, 26, 12], rot: [0, 0, -0.4] },
-      ],
-    },
-    { // 2: Legends — steering wheel
-      color: 0xd4af37,
-      pieces: [
-        { geo: new THREE.TorusGeometry(16, 2.6, 6, 16, Math.PI * 1.6), pos: [0, 22, 60], rot: [0, 0, -0.9] },
-        { geo: new THREE.CylinderGeometry(6, 6, 5, 10), pos: [0, 22, 60], rot: [Math.PI / 2, 0, 0] },
-        { geo: new THREE.BoxGeometry(10, 6, 1), pos: [0, 22, 64] },
-        { geo: new THREE.BoxGeometry(4, 2, 2), pos: [-9, 26, 62] },
-        { geo: new THREE.BoxGeometry(4, 2, 2), pos: [9, 26, 62] },
-        { geo: new THREE.CylinderGeometry(1.5, 1.5, 2, 8), pos: [-6, 18, 63], rot: [Math.PI / 2, 0, 0] },
-        { geo: new THREE.CylinderGeometry(1.5, 1.5, 2, 8), pos: [6, 18, 63], rot: [Math.PI / 2, 0, 0] },
-        { geo: new THREE.BoxGeometry(3, 1, 9), pos: [-14, 20, 55], rot: [0, 0.3, 0] },
-        { geo: new THREE.BoxGeometry(3, 1, 9), pos: [14, 20, 55], rot: [0, -0.3, 0] },
-      ],
-    },
-    { // 3: Constructors — sidepods & engine cover
-      color: 0xff3b30,
-      pieces: [
-        { geo: new THREE.BoxGeometry(18, 22, 90), pos: [-42, -2, -20] },
-        { geo: new THREE.BoxGeometry(18, 22, 90), pos: [42, -2, -20] },
-        { geo: new THREE.BoxGeometry(12, 14, 8), pos: [-42, 0, 20] },
-        { geo: new THREE.BoxGeometry(12, 14, 8), pos: [42, 0, 20] },
-        { geo: new THREE.BoxGeometry(44, 16, 100), pos: [0, 18, -40] },
-        { geo: new THREE.BoxGeometry(40, 1, 6), pos: [0, 27, -30] },
-        { geo: new THREE.BoxGeometry(40, 1, 6), pos: [0, 30, -42] },
-        { geo: new THREE.BoxGeometry(40, 1, 6), pos: [0, 33, -54] },
-      ],
-    },
-    { // 4: Circuits — wheels & tyres
-      color: 0x7dd3fc,
-      pieces: [
-        { geo: new THREE.CylinderGeometry(26, 26, 20, 14), pos: [-62, -30, 120], rot: [0, 0, Math.PI / 2] },
-        { geo: new THREE.CylinderGeometry(26, 26, 20, 14), pos: [62, -30, 120], rot: [0, 0, Math.PI / 2] },
-        { geo: new THREE.CylinderGeometry(28, 28, 22, 14), pos: [-65, -32, -110], rot: [0, 0, Math.PI / 2] },
-        { geo: new THREE.CylinderGeometry(28, 28, 22, 14), pos: [65, -32, -110], rot: [0, 0, Math.PI / 2] },
-        { geo: new THREE.CylinderGeometry(14, 14, 22, 10), pos: [-62, -30, 120], rot: [0, 0, Math.PI / 2] },
-        { geo: new THREE.CylinderGeometry(14, 14, 22, 10), pos: [62, -30, 120], rot: [0, 0, Math.PI / 2] },
-        { geo: new THREE.CylinderGeometry(15, 15, 24, 10), pos: [-65, -32, -110], rot: [0, 0, Math.PI / 2] },
-        { geo: new THREE.CylinderGeometry(15, 15, 24, 10), pos: [65, -32, -110], rot: [0, 0, Math.PI / 2] },
-        { geo: new THREE.BoxGeometry(10, 10, 6), pos: [-62, -30, 135] },
-        { geo: new THREE.BoxGeometry(10, 10, 6), pos: [62, -30, 135] },
-      ],
-    },
-    { // 5: Timeline — rear wing & diffuser
-      color: 0xd4af37,
-      pieces: [
-        { geo: new THREE.BoxGeometry(90, 5, 18), pos: [0, 55, -165] },
-        { geo: new THREE.BoxGeometry(85, 3, 14), pos: [0, 45, -160] },
-        { geo: new THREE.BoxGeometry(4, 30, 4), pos: [-30, 38, -165] },
-        { geo: new THREE.BoxGeometry(4, 30, 4), pos: [30, 38, -165] },
-        { geo: new THREE.BoxGeometry(3, 24, 20), pos: [-46, 50, -165] },
-        { geo: new THREE.BoxGeometry(3, 24, 20), pos: [46, 50, -165] },
-        { geo: new THREE.BoxGeometry(70, 14, 40), pos: [0, -28, -170], rot: [0.3, 0, 0] },
-        { geo: new THREE.BoxGeometry(2, 10, 35), pos: [-20, -24, -168] },
-        { geo: new THREE.BoxGeometry(2, 10, 35), pos: [0, -24, -168] },
-        { geo: new THREE.BoxGeometry(2, 10, 35), pos: [20, -24, -168] },
-      ],
-    },
-  ];
-
-  function buildCarPart({ color, pieces }) {
-    const group = new THREE.Group();
-    const lineMats = [];
-    const fillMats = [];
-    pieces.forEach(({ geo, pos = [0, 0, 0], rot = [0, 0, 0] }) => {
-      const lineMat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 });
-      const lines = new THREE.LineSegments(new THREE.WireframeGeometry(geo), lineMat);
-      const fillMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, side: THREE.BackSide });
-      const fill = new THREE.Mesh(geo, fillMat);
-      const piece = new THREE.Group();
-      piece.add(fill, lines);
-      piece.position.set(...pos);
-      piece.rotation.set(...rot);
-      group.add(piece);
-      lineMats.push(lineMat);
-      fillMats.push(fillMat);
-    });
-    group.scale.setScalar(0);
-    return { group, lineMats, fillMats };
-  }
 
   const carRig = new THREE.Group();
   scene.add(carRig);
 
-  const carParts = CAR_PART_DEFS.map((def, i) => {
-    const part = buildCarPart(def);
-    part.dockedPos = DOCKED_POSITIONS[i];
-    carRig.add(part.group);
-    return part;
-  });
+  let carParts = [];
+
+  function processModel(gltf) {
+    const root = gltf.scene;
+    carRig.add(root);
+
+    // Normalize scale + center so the model fits the same visual footprint
+    // as the rest of the scene, regardless of the source file's own units.
+    const rawBox = new THREE.Box3().setFromObject(root);
+    const rawSize = rawBox.getSize(new THREE.Vector3());
+    const rawCenter = rawBox.getCenter(new THREE.Vector3());
+    const longest = Math.max(rawSize.x, rawSize.y, rawSize.z) || 1;
+    const scale = NORMALIZED_LENGTH / longest;
+    root.scale.setScalar(scale);
+    root.position.set(-rawCenter.x * scale, -rawCenter.y * scale, -rawCenter.z * scale);
+    root.updateMatrixWorld(true);
+
+    const meshes = [];
+    root.traverse((child) => { if (child.isMesh) meshes.push(child); });
+
+    const modelBox = new THREE.Box3().setFromObject(root);
+    const modelCenter = modelBox.getCenter(new THREE.Vector3());
+    const boxTmp = new THREE.Box3();
+    const centerTmp = new THREE.Vector3();
+
+    carParts = meshes.map((mesh) => {
+      // Pull this mesh out of the model's original (arbitrarily deep)
+      // node hierarchy into its own group directly under carRig, preserving
+      // its current world transform — so it can be freely animated
+      // (BUILD scale, SCATTER position) independent of its GLB siblings.
+      const group = new THREE.Group();
+      carRig.add(group);
+      group.attach(mesh);
+      const restPos = group.position.clone();
+
+      boxTmp.setFromObject(mesh);
+      boxTmp.getCenter(centerTmp);
+      const dir = centerTmp.clone().sub(modelCenter);
+      if (dir.lengthSq() < 1) {
+        dir.set(Math.random() - 0.5, Math.random() * 0.5 + 0.1, Math.random() - 0.5);
+      }
+      dir.normalize();
+      const dockedVec = restPos.clone().add(dir.multiplyScalar(EXPLODE_DISTANCE)).add(SCATTER_ANCHOR);
+
+      const lineMat = new THREE.MeshBasicMaterial({ color: CAR_COLOR, wireframe: true, transparent: true, opacity: 0 });
+      mesh.material = lineMat;
+
+      const fillMat = new THREE.MeshBasicMaterial({ color: CAR_COLOR, transparent: true, opacity: 0, side: THREE.BackSide, depthWrite: false });
+      const fillMesh = new THREE.Mesh(mesh.geometry, fillMat);
+      fillMesh.position.copy(mesh.position);
+      fillMesh.rotation.copy(mesh.rotation);
+      fillMesh.scale.copy(mesh.scale);
+      group.add(fillMesh);
+
+      group.scale.setScalar(0);
+
+      return {
+        group,
+        lineMats: [lineMat],
+        fillMats: [fillMat],
+        restPos: [restPos.x, restPos.y, restPos.z],
+        dockedPos: [dockedVec.x, dockedVec.y, dockedVec.z],
+      };
+    });
+  }
 
   function dockAllPartsImmediately() {
+    // Called from multiple points (reduced-motion skip, any error in the
+    // BUILD/DRIVE/SCATTER sequence) — group may still be carRig-local at
+    // that moment, so re-parent to the scene first to guarantee dockedPos
+    // (an absolute coordinate) lands correctly regardless of carRig's
+    // current position.
     carParts.forEach(({ group, dockedPos }) => {
       scene.attach(group);
       group.position.set(dockedPos[0], dockedPos[1], dockedPos[2]);
@@ -288,46 +251,86 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
     }).finished;
   };
 
+  // Real download/parse progress drives 0->90%; the remaining 90->100% is
+  // reserved for the live-standings gate below, same as before.
+  const modelReadyPromise = (async () => {
+    // The optimized GLB (4MB vs. ~38MB uncompressed) uses meshopt geometry
+    // compression. Registering the decoder isn't enough on its own — the
+    // extension also checks `decoder.supported`, which only flips true once
+    // the decoder's WASM has finished initializing, so `.ready` has to be
+    // awaited *before* load() or every mesh fails with "setMeshoptDecoder
+    // must be called before loading compressed files" even though it was.
+    await MeshoptDecoder.ready;
+    return new Promise((resolve, reject) => {
+      const loader = new GLTFLoader();
+      loader.setMeshoptDecoder(MeshoptDecoder);
+      loader.load(
+        MODEL_URL,
+        (gltf) => {
+          try {
+            processModel(gltf);
+            if (loaderCounter.val < 90) { loaderCounter.val = 90; updateLoaderDom(); }
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        },
+        (xhr) => {
+          if (xhr.lengthComputable && xhr.total > 0) {
+            loaderCounter.val = Math.min(90, (xhr.loaded / xhr.total) * 90);
+            updateLoaderDom();
+          }
+        },
+        (err) => reject(err)
+      );
+    });
+  })();
+
   let introComplete = false;
 
   async function playIntro() {
+    try {
+      await modelReadyPromise;
+    } catch (err) {
+      console.warn('[three-bg] Failed to load F1 car model:', err);
+      revealEverythingNow();
+      introComplete = true;
+      return;
+    }
+
     if (reduceMotion || !window.anime) {
       dockAllPartsImmediately();
       revealEverythingNow();
       introComplete = true;
       return;
     }
-    try {
-      carRig.position.set(0, 15, -70);
 
+    try {
       // Scale still ramps 0→1 per part below, so nothing is visible yet —
       // but opacity has to be non-zero *now*, or the whole build/drive/
       // scatter sequence renders invisibly even as it moves.
-      const visibleLine = 0.85;
-      const visibleFill = 0.08;
       carParts.forEach((p) => {
-        p.lineMats.forEach((m) => { m.opacity = visibleLine; });
-        p.fillMats.forEach((m) => { m.opacity = visibleFill; });
+        p.lineMats.forEach((m) => { m.opacity = 0.85; });
+        p.fillMats.forEach((m) => { m.opacity = 0.08; });
       });
 
-      // BUILD — parts settle into their assembled position one after
-      // another, on top of the loader; percentage climbs to 96% here and
-      // holds — it only completes once the live data actually resolves.
+      // BUILD — parts settle into their assembled (native) position one
+      // after another, on top of the loader.
       const buildScale = anime({
         targets: carParts.map((p) => p.group.scale),
         x: [0, 1], y: [0, 1], z: [0, 1],
         duration: 550,
-        delay: anime.stagger(110),
+        delay: anime.stagger(70),
         easing: 'easeOutBack',
       });
       const buildSpin = anime({
         targets: carParts.map((p) => p.group.rotation),
         y: [Math.PI * 1.1, 0],
         duration: 550,
-        delay: anime.stagger(110),
+        delay: anime.stagger(70),
         easing: 'easeOutBack',
       });
-      await Promise.all([buildScale.finished, buildSpin.finished, animateLoaderTo(96, 950)]);
+      await Promise.all([buildScale.finished, buildSpin.finished, animateLoaderTo(96, 700)]);
 
       await Promise.race([dataReadyPromise, wait(8500)]);
       await animateLoaderTo(100, 250);
@@ -343,29 +346,33 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
         .add({ targets: carRig.position, x: 300, duration: 400, easing: 'easeOutQuad' });
       await drive.finished;
 
-      // SCATTER — the car dissects; each part flies out, staggered and in
-      // order, to its own section's spot on the page.
+      // SCATTER — the car dissects; each part flies out, staggered, to its
+      // own exploded-view slot (computed from its own geometry above).
+      // Re-parent to the scene first: dockedPos is an absolute coordinate,
+      // but group.position is still carRig-local at this point, and carRig
+      // itself just moved during DRIVE — without this, every part would
+      // land offset by wherever DRIVE ended instead of at its real slot.
       carParts.forEach(({ group }) => scene.attach(group));
       const scatterMove = anime({
         targets: carParts.map((p) => p.group.position),
         x: (el, i) => carParts[i].dockedPos[0],
         y: (el, i) => carParts[i].dockedPos[1],
         z: (el, i) => carParts[i].dockedPos[2],
-        delay: anime.stagger(150),
+        delay: anime.stagger(90),
         duration: 750,
         easing: 'easeOutExpo',
       });
       const scatterScale = anime({
         targets: carParts.map((p) => p.group.scale),
         x: PART_SCALE, y: PART_SCALE, z: PART_SCALE,
-        delay: anime.stagger(150),
+        delay: anime.stagger(90),
         duration: 750,
         easing: 'easeOutExpo',
       });
       const scatterSpin = anime({
         targets: carParts.map((p) => p.group.rotation),
         y: (el, i) => `+=${(i % 2 === 0 ? 1 : -1) * (Math.PI * 2 + Math.random() * Math.PI)}`,
-        delay: anime.stagger(150),
+        delay: anime.stagger(90),
         duration: 750,
         easing: 'easeOutExpo',
       });
@@ -381,31 +388,27 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
     }
   }
 
-  let activeSection = 0;
-  const updateActiveSection = () => {
-    const probeY = window.innerHeight * 0.45;
-    let closestIdx = 0;
-    let closestDist = Infinity;
-    sectionEls.forEach((el, i) => {
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const mid = rect.top + rect.height / 2;
-      const dist = Math.abs(mid - probeY);
-      if (dist < closestDist) { closestDist = dist; closestIdx = i; }
-    });
-    activeSection = closestIdx;
+  // Which of the 11 parts is "active" is driven by overall scroll progress
+  // through the whole page, split into 11 even slots — independent of the
+  // page's 6 content sections.
+  let activeIndex = 0;
+  const updateActiveIndex = () => {
+    if (!carParts.length) return;
+    const doc = document.documentElement;
+    const max = doc.scrollHeight - doc.clientHeight;
+    const frac = max > 0 ? window.scrollY / max : 0;
+    activeIndex = Math.min(carParts.length - 1, Math.floor(frac * carParts.length));
   };
-  window.addEventListener('scroll', updateActiveSection, { passive: true });
-  updateActiveSection();
+  window.addEventListener('scroll', updateActiveIndex, { passive: true });
 
   /* ---------- Part spotlight HUD — only shows when the cursor is actually
-   * near the active part, not just because its section is in view. ---------- */
+   * near the active part, not just because it's the active scroll slot. ---------- */
   const spotlightEl = document.getElementById('part-spotlight');
   const spotlightLabelEl = document.getElementById('part-spotlight-label');
   const spotlightTitleEl = document.getElementById('part-spotlight-title');
   const spotlightFactEl = document.getElementById('part-spotlight-fact');
   let spotlightOpacity = 0;
-  let lastSpotlightSection = -1;
+  let lastSpotlightIndex = -1;
 
   const mousePx = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
   window.addEventListener('mousemove', (e) => {
@@ -475,13 +478,12 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
       particleGroup.rotation.y = scrollFrac * Math.PI * 0.4;
     }
 
-    if (introComplete) {
-      const activePart = carParts[activeSection];
+    if (introComplete && carParts.length) {
+      const activePart = carParts[activeIndex];
       let nearCursor = false;
 
       // Parts sit still once docked — no auto-rotation, no scroll drift.
-      // The only motion is a direct response to the cursor, so it reads as
-      // "you're interacting with it" rather than ambient fidgeting.
+      // The only motion is a direct response to the cursor.
       if (activePart) {
         projected.copy(activePart.group.position).project(camera);
         const screenX = (projected.x * 0.5 + 0.5) * width;
@@ -491,9 +493,9 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
         nearCursor = Math.sqrt(dx * dx + dy * dy) < 280;
       }
 
-      if (activeSection !== lastSpotlightSection) {
-        lastSpotlightSection = activeSection;
-        const info = PART_INFO[activeSection];
+      if (activeIndex !== lastSpotlightIndex) {
+        lastSpotlightIndex = activeIndex;
+        const info = PART_INFO[activeIndex];
         if (info && spotlightLabelEl) {
           spotlightLabelEl.textContent = info.label;
           spotlightTitleEl.textContent = info.title;
@@ -505,7 +507,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
       if (spotlightEl) spotlightEl.style.opacity = String(spotlightOpacity);
 
       carParts.forEach(({ group, lineMats, fillMats, dockedPos }, i) => {
-        const isActive = i === activeSection;
+        const isActive = i === activeIndex;
         const targetLine = isActive ? 0.9 * themeOpacityScale : 0;
         const targetFill = isActive ? 0.09 * themeOpacityScale : 0;
         lineMats.forEach((m) => { m.opacity += (targetLine - m.opacity) * 0.06; });
@@ -514,10 +516,14 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
         group.position.y += (dockedPos[1] - group.position.y) * 0.08;
 
         if (isActive) {
-          const targetScale = nearCursor ? PART_SCALE * 1.1 : PART_SCALE;
+          // Major hover-zoom: the isolated part expands fluidly toward the
+          // viewer when the cursor is near it.
+          const targetScale = nearCursor ? PART_SCALE * 1.55 : PART_SCALE;
           group.scale.x += (targetScale - group.scale.x) * 0.08;
           group.scale.y = group.scale.z = group.scale.x;
           if (!reduceMotion) {
+            // Micro-rotation toward the cursor — feels like tilting the
+            // physical piece in your hand.
             group.rotation.x += (pointer.y * 0.22 - group.rotation.x) * 0.06;
             group.rotation.z += (pointer.x * 0.16 - group.rotation.z) * 0.06;
           }
@@ -533,5 +539,6 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
     renderer.render(scene, camera);
   };
   tick();
+  updateActiveIndex();
   playIntro();
 })();

@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
   window.addEventListener('f1-intro-complete', playHeroReveal, { once: true });
-  setTimeout(playHeroReveal, 14300);
+  setTimeout(playHeroReveal, 26300);
 
   /* marquee scroll */
   anime({
