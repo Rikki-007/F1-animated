@@ -121,14 +121,14 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
   const sectionEls = SECTION_IDS.map((id) => document.getElementById(id));
 
   const DOCKED_POSITIONS = [
-    [220, 90, -40],
-    [-200, 40, -60],
-    [240, -30, -50],
-    [-230, -80, -40],
-    [180, 120, -70],
-    [-160, -140, -50],
+    [145, 60, -30],
+    [-130, 26, -40],
+    [155, -20, -35],
+    [-150, -52, -30],
+    [115, 78, -45],
+    [-105, -90, -35],
   ];
-  const PART_SCALE = 1.35;
+  const PART_SCALE = 1.9;
 
   const PART_INFO = [
     { label: 'FRONT WING & NOSE', title: 'First Point of Airflow', fact: 'The front wing shapes airflow for the entire car — teams run thousands of CFD simulations to perfect its curvature.' },
@@ -478,8 +478,10 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
     if (introComplete) {
       const activePart = carParts[activeSection];
       let nearCursor = false;
-      let driftY = 0;
 
+      // Parts sit still once docked — no auto-rotation, no scroll drift.
+      // The only motion is a direct response to the cursor, so it reads as
+      // "you're interacting with it" rather than ambient fidgeting.
       if (activePart) {
         projected.copy(activePart.group.position).project(camera);
         const screenX = (projected.x * 0.5 + 0.5) * width;
@@ -487,17 +489,6 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
         const dx = mousePx.x - screenX;
         const dy = mousePx.y - screenY;
         nearCursor = Math.sqrt(dx * dx + dy * dy) < 280;
-
-        // Scroll-linked drift — the active part rides with its section: it
-        // sits low as the section enters, at its docked spot once centred,
-        // and drifts up and out as the section scrolls past, so it feels
-        // attached to that page rather than fixed in the viewport.
-        const sectionEl = sectionEls[activeSection];
-        if (sectionEl && !reduceMotion) {
-          const rect = sectionEl.getBoundingClientRect();
-          const centerOffset = (rect.top + rect.height / 2) - height / 2;
-          driftY = Math.max(-160, Math.min(160, -centerOffset * 0.15));
-        }
       }
 
       if (activeSection !== lastSpotlightSection) {
@@ -519,20 +510,18 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
         const targetFill = isActive ? 0.09 * themeOpacityScale : 0;
         lineMats.forEach((m) => { m.opacity += (targetLine - m.opacity) * 0.06; });
         fillMats.forEach((m) => { m.opacity += (targetFill - m.opacity) * 0.06; });
-        group.rotation.y += 0.005 + i * 0.0008;
+
+        group.position.y += (dockedPos[1] - group.position.y) * 0.08;
 
         if (isActive) {
-          const targetY = dockedPos[1] + driftY;
-          group.position.y += (targetY - group.position.y) * 0.08;
-          const targetScale = nearCursor ? PART_SCALE * 1.18 : PART_SCALE;
+          const targetScale = nearCursor ? PART_SCALE * 1.1 : PART_SCALE;
           group.scale.x += (targetScale - group.scale.x) * 0.08;
           group.scale.y = group.scale.z = group.scale.x;
           if (!reduceMotion) {
-            group.rotation.x += (pointer.y * 0.5 - group.rotation.x) * 0.06;
-            group.rotation.z += (pointer.x * 0.35 - group.rotation.z) * 0.06;
+            group.rotation.x += (pointer.y * 0.22 - group.rotation.x) * 0.06;
+            group.rotation.z += (pointer.x * 0.16 - group.rotation.z) * 0.06;
           }
         } else {
-          group.position.y += (dockedPos[1] - group.position.y) * 0.06;
           group.scale.x += (PART_SCALE - group.scale.x) * 0.06;
           group.scale.y = group.scale.z = group.scale.x;
           group.rotation.x += (0 - group.rotation.x) * 0.06;
