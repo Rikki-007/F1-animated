@@ -109,25 +109,24 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
   particleGroup.add(new THREE.Points(geometry, material));
   scene.add(particleGroup);
 
-  /* ================= F1 car: built from primitives, one shared cluster ===========
+  /* ================= F1 car: built from primitives, one per section ==============
    * No 3D model asset is available, so the car is assembled from simple
-   * geometry in the same wireframe-HUD style as the rest of the site. All
-   * six parts share ONE on-screen "main location" (not scattered across the
-   * page) arranged as a compact exploded-diagram cluster, front-to-back —
-   * nose closest to the viewer, rear wing furthest — matching page scroll
-   * order (Overview → ... → Timeline). Only the active section's part is
-   * emphasized; the rest sit dim in the background of the cluster. */
+   * geometry in the same wireframe-HUD style as the rest of the site — each
+   * part built from several pieces so it reads as an actual component
+   * rather than a bare primitive. Each of the six parts belongs to its own
+   * page section and docks at its own spot (front wing→Overview,
+   * halo→Data Hub, wheel→Legends, sidepods→Constructors, tyres→Circuits,
+   * rear wing→Timeline); only the active section's part is visible. */
   const SECTION_IDS = ['overview', 'data-hub', 'legends', 'teams', 'circuits', 'timeline'];
   const sectionEls = SECTION_IDS.map((id) => document.getElementById(id));
 
-  const MAIN_LOCATION = [160, 20, -30];
-  const PART_OFFSETS = [
-    [0, 30, 100],
-    [-50, 10, 40],
-    [50, -10, 10],
-    [-50, -30, -30],
-    [50, 20, -60],
-    [0, -20, -110],
+  const DOCKED_POSITIONS = [
+    [220, 90, -40],
+    [-200, 40, -60],
+    [240, -30, -50],
+    [-230, -80, -40],
+    [180, 120, -70],
+    [-160, -140, -50],
   ];
   const PART_SCALE = 1.35;
 
@@ -145,9 +144,13 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
       color: 0xe10600,
       pieces: [
         { geo: new THREE.ConeGeometry(20, 90, 8), pos: [0, -5, 150], rot: [-Math.PI / 2, 0, 0] },
+        { geo: new THREE.ConeGeometry(8, 34, 8), pos: [0, -5, 195], rot: [-Math.PI / 2, 0, 0] },
         { geo: new THREE.BoxGeometry(120, 4, 20), pos: [0, -22, 178] },
+        { geo: new THREE.BoxGeometry(110, 3, 14), pos: [0, -13, 172] },
         { geo: new THREE.BoxGeometry(4, 18, 20), pos: [-58, -14, 178] },
         { geo: new THREE.BoxGeometry(4, 18, 20), pos: [58, -14, 178] },
+        { geo: new THREE.BoxGeometry(2, 10, 14), pos: [-25, -28, 175] },
+        { geo: new THREE.BoxGeometry(2, 10, 14), pos: [25, -28, 175] },
       ],
     },
     { // 1: Data Hub — halo & cockpit
@@ -155,6 +158,10 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
       pieces: [
         { geo: new THREE.BoxGeometry(66, 20, 130), pos: [0, 8, 10] },
         { geo: new THREE.TorusGeometry(24, 3, 6, 14), pos: [0, 44, 30], rot: [1.15, 0, 0] },
+        { geo: new THREE.TorusGeometry(20, 2, 6, 12), pos: [0, 14, 35], rot: [Math.PI / 2, 0, 0] },
+        { geo: new THREE.CylinderGeometry(2.5, 2.5, 46, 8), pos: [0, 26, 56], rot: [0.55, 0, 0] },
+        { geo: new THREE.CylinderGeometry(2, 2, 36, 8), pos: [-17, 26, 12], rot: [0, 0, 0.4] },
+        { geo: new THREE.CylinderGeometry(2, 2, 36, 8), pos: [17, 26, 12], rot: [0, 0, -0.4] },
       ],
     },
     { // 2: Legends — steering wheel
@@ -162,8 +169,13 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
       pieces: [
         { geo: new THREE.TorusGeometry(16, 2.6, 6, 16, Math.PI * 1.6), pos: [0, 22, 60], rot: [0, 0, -0.9] },
         { geo: new THREE.CylinderGeometry(6, 6, 5, 10), pos: [0, 22, 60], rot: [Math.PI / 2, 0, 0] },
+        { geo: new THREE.BoxGeometry(10, 6, 1), pos: [0, 22, 64] },
         { geo: new THREE.BoxGeometry(4, 2, 2), pos: [-9, 26, 62] },
         { geo: new THREE.BoxGeometry(4, 2, 2), pos: [9, 26, 62] },
+        { geo: new THREE.CylinderGeometry(1.5, 1.5, 2, 8), pos: [-6, 18, 63], rot: [Math.PI / 2, 0, 0] },
+        { geo: new THREE.CylinderGeometry(1.5, 1.5, 2, 8), pos: [6, 18, 63], rot: [Math.PI / 2, 0, 0] },
+        { geo: new THREE.BoxGeometry(3, 1, 9), pos: [-14, 20, 55], rot: [0, 0.3, 0] },
+        { geo: new THREE.BoxGeometry(3, 1, 9), pos: [14, 20, 55], rot: [0, -0.3, 0] },
       ],
     },
     { // 3: Constructors — sidepods & engine cover
@@ -171,7 +183,12 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
       pieces: [
         { geo: new THREE.BoxGeometry(18, 22, 90), pos: [-42, -2, -20] },
         { geo: new THREE.BoxGeometry(18, 22, 90), pos: [42, -2, -20] },
+        { geo: new THREE.BoxGeometry(12, 14, 8), pos: [-42, 0, 20] },
+        { geo: new THREE.BoxGeometry(12, 14, 8), pos: [42, 0, 20] },
         { geo: new THREE.BoxGeometry(44, 16, 100), pos: [0, 18, -40] },
+        { geo: new THREE.BoxGeometry(40, 1, 6), pos: [0, 27, -30] },
+        { geo: new THREE.BoxGeometry(40, 1, 6), pos: [0, 30, -42] },
+        { geo: new THREE.BoxGeometry(40, 1, 6), pos: [0, 33, -54] },
       ],
     },
     { // 4: Circuits — wheels & tyres
@@ -181,15 +198,27 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
         { geo: new THREE.CylinderGeometry(26, 26, 20, 14), pos: [62, -30, 120], rot: [0, 0, Math.PI / 2] },
         { geo: new THREE.CylinderGeometry(28, 28, 22, 14), pos: [-65, -32, -110], rot: [0, 0, Math.PI / 2] },
         { geo: new THREE.CylinderGeometry(28, 28, 22, 14), pos: [65, -32, -110], rot: [0, 0, Math.PI / 2] },
+        { geo: new THREE.CylinderGeometry(14, 14, 22, 10), pos: [-62, -30, 120], rot: [0, 0, Math.PI / 2] },
+        { geo: new THREE.CylinderGeometry(14, 14, 22, 10), pos: [62, -30, 120], rot: [0, 0, Math.PI / 2] },
+        { geo: new THREE.CylinderGeometry(15, 15, 24, 10), pos: [-65, -32, -110], rot: [0, 0, Math.PI / 2] },
+        { geo: new THREE.CylinderGeometry(15, 15, 24, 10), pos: [65, -32, -110], rot: [0, 0, Math.PI / 2] },
+        { geo: new THREE.BoxGeometry(10, 10, 6), pos: [-62, -30, 135] },
+        { geo: new THREE.BoxGeometry(10, 10, 6), pos: [62, -30, 135] },
       ],
     },
     { // 5: Timeline — rear wing & diffuser
       color: 0xd4af37,
       pieces: [
         { geo: new THREE.BoxGeometry(90, 5, 18), pos: [0, 55, -165] },
+        { geo: new THREE.BoxGeometry(85, 3, 14), pos: [0, 45, -160] },
         { geo: new THREE.BoxGeometry(4, 30, 4), pos: [-30, 38, -165] },
         { geo: new THREE.BoxGeometry(4, 30, 4), pos: [30, 38, -165] },
+        { geo: new THREE.BoxGeometry(3, 24, 20), pos: [-46, 50, -165] },
+        { geo: new THREE.BoxGeometry(3, 24, 20), pos: [46, 50, -165] },
         { geo: new THREE.BoxGeometry(70, 14, 40), pos: [0, -28, -170], rot: [0.3, 0, 0] },
+        { geo: new THREE.BoxGeometry(2, 10, 35), pos: [-20, -24, -168] },
+        { geo: new THREE.BoxGeometry(2, 10, 35), pos: [0, -24, -168] },
+        { geo: new THREE.BoxGeometry(2, 10, 35), pos: [20, -24, -168] },
       ],
     },
   ];
@@ -220,11 +249,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
   const carParts = CAR_PART_DEFS.map((def, i) => {
     const part = buildCarPart(def);
-    part.dockedPos = [
-      MAIN_LOCATION[0] + PART_OFFSETS[i][0],
-      MAIN_LOCATION[1] + PART_OFFSETS[i][1],
-      MAIN_LOCATION[2] + PART_OFFSETS[i][2],
-    ];
+    part.dockedPos = DOCKED_POSITIONS[i];
     carRig.add(part.group);
     return part;
   });
@@ -319,7 +344,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
       await drive.finished;
 
       // SCATTER — the car dissects; each part flies out, staggered and in
-      // order (front-to-back), into its slot in the shared cluster.
+      // order, to its own section's spot on the page.
       carParts.forEach(({ group }) => scene.attach(group));
       const scatterMove = anime({
         targets: carParts.map((p) => p.group.position),
@@ -373,7 +398,8 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
   window.addEventListener('scroll', updateActiveSection, { passive: true });
   updateActiveSection();
 
-  /* ---------- Part spotlight HUD ---------- */
+  /* ---------- Part spotlight HUD — only shows when the cursor is actually
+   * near the active part, not just because its section is in view. ---------- */
   const spotlightEl = document.getElementById('part-spotlight');
   const spotlightLabelEl = document.getElementById('part-spotlight-label');
   const spotlightTitleEl = document.getElementById('part-spotlight-title');
@@ -450,6 +476,30 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
     }
 
     if (introComplete) {
+      const activePart = carParts[activeSection];
+      let nearCursor = false;
+      let driftY = 0;
+
+      if (activePart) {
+        projected.copy(activePart.group.position).project(camera);
+        const screenX = (projected.x * 0.5 + 0.5) * width;
+        const screenY = (-projected.y * 0.5 + 0.5) * height;
+        const dx = mousePx.x - screenX;
+        const dy = mousePx.y - screenY;
+        nearCursor = Math.sqrt(dx * dx + dy * dy) < 280;
+
+        // Scroll-linked drift — the active part rides with its section: it
+        // sits low as the section enters, at its docked spot once centred,
+        // and drifts up and out as the section scrolls past, so it feels
+        // attached to that page rather than fixed in the viewport.
+        const sectionEl = sectionEls[activeSection];
+        if (sectionEl && !reduceMotion) {
+          const rect = sectionEl.getBoundingClientRect();
+          const centerOffset = (rect.top + rect.height / 2) - height / 2;
+          driftY = Math.max(-160, Math.min(160, -centerOffset * 0.15));
+        }
+      }
+
       if (activeSection !== lastSpotlightSection) {
         lastSpotlightSection = activeSection;
         const info = PART_INFO[activeSection];
@@ -459,32 +509,31 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
           spotlightFactEl.textContent = info.fact;
         }
       }
-      spotlightOpacity += (1 - spotlightOpacity) * 0.05;
+      const spotlightTarget = nearCursor ? 1 : 0;
+      spotlightOpacity += (spotlightTarget - spotlightOpacity) * 0.08;
       if (spotlightEl) spotlightEl.style.opacity = String(spotlightOpacity);
 
-      carParts.forEach(({ group, lineMats, fillMats }, i) => {
+      carParts.forEach(({ group, lineMats, fillMats, dockedPos }, i) => {
         const isActive = i === activeSection;
-        const targetLine = (isActive ? 0.9 : 0.16) * themeOpacityScale;
-        const targetFill = (isActive ? 0.09 : 0.02) * themeOpacityScale;
+        const targetLine = isActive ? 0.9 * themeOpacityScale : 0;
+        const targetFill = isActive ? 0.09 * themeOpacityScale : 0;
         lineMats.forEach((m) => { m.opacity += (targetLine - m.opacity) * 0.06; });
         fillMats.forEach((m) => { m.opacity += (targetFill - m.opacity) * 0.06; });
         group.rotation.y += 0.005 + i * 0.0008;
 
-        if (!reduceMotion && isActive) {
-          projected.copy(group.position).project(camera);
-          const screenX = (projected.x * 0.5 + 0.5) * width;
-          const screenY = (-projected.y * 0.5 + 0.5) * height;
-          const dx = mousePx.x - screenX;
-          const dy = mousePx.y - screenY;
-          const nearCursor = Math.sqrt(dx * dx + dy * dy) < 280;
-          const targetScale = (nearCursor ? PART_SCALE * 1.18 : PART_SCALE);
+        if (isActive) {
+          const targetY = dockedPos[1] + driftY;
+          group.position.y += (targetY - group.position.y) * 0.08;
+          const targetScale = nearCursor ? PART_SCALE * 1.18 : PART_SCALE;
           group.scale.x += (targetScale - group.scale.x) * 0.08;
           group.scale.y = group.scale.z = group.scale.x;
-          group.rotation.x += (pointer.y * 0.5 - group.rotation.x) * 0.06;
-          group.rotation.z += (pointer.x * 0.35 - group.rotation.z) * 0.06;
+          if (!reduceMotion) {
+            group.rotation.x += (pointer.y * 0.5 - group.rotation.x) * 0.06;
+            group.rotation.z += (pointer.x * 0.35 - group.rotation.z) * 0.06;
+          }
         } else {
-          const targetScale = isActive ? PART_SCALE : PART_SCALE * 0.75;
-          group.scale.x += (targetScale - group.scale.x) * 0.06;
+          group.position.y += (dockedPos[1] - group.position.y) * 0.06;
+          group.scale.x += (PART_SCALE - group.scale.x) * 0.06;
           group.scale.y = group.scale.z = group.scale.x;
           group.rotation.x += (0 - group.rotation.x) * 0.06;
           group.rotation.z += (0 - group.rotation.z) * 0.06;
