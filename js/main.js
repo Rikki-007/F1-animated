@@ -27,36 +27,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ---------- Hero reveal ---------- */
-  anime.timeline({ easing: 'easeOutExpo' })
-    .add({ targets: '#hero-eyebrow', opacity: [0,1], translateY: [16,0], duration: 700 })
-    .add({ targets: '#hero-l1', opacity: [0,1], translateY: [40,0], duration: 800 }, '-=450')
-    .add({ targets: '#hero-l2', opacity: [0,1], translateY: [40,0], duration: 800 }, '-=600')
-    .add({ targets: '#hero-sub', opacity: [0,1], translateY: [24,0], duration: 700 }, '-=500')
-    .add({ targets: '#hero-panel', opacity: [0,1], translateY: [24,0], scale: [0.96,1], duration: 700 }, '-=600')
-    .add({ targets: '#nav-logo, #nav-links a', opacity: [0,1], translateY: [-10,0], duration: 500, delay: anime.stagger(60) }, '-=900');
+  /* ---------- Hero reveal ----------
+   * Held back until the car intro (js/three-bg.js) signals the page is
+   * ready to show — otherwise this would finish playing while still
+   * hidden behind the loader/pending overlay. A safety-net timeout covers
+   * the case where that signal never arrives (e.g. the intro script fails
+   * to load at all), so the hero never ends up stuck invisible. */
+  let heroRevealed = false;
+  const playHeroReveal = () => {
+    if (heroRevealed) return;
+    heroRevealed = true;
 
-  /* hero counter — computed from the current year so it never goes stale */
-  const seasonsRecorded = new Date().getFullYear() - 1950 + 1;
-  const heroCounterEl = document.getElementById('hero-counter');
-  heroCounterEl.dataset.count = String(seasonsRecorded);
-  const heroCounter = { val: 0 };
-  anime({
-    targets: heroCounter,
-    val: seasonsRecorded,
-    round: 1,
-    duration: 1800,
-    delay: 600,
-    easing: 'easeOutCubic',
-    update: () => heroCounterEl.textContent = heroCounter.val,
-  });
-  anime({
-    targets: '#hero-bar',
-    width: ['0%','100%'],
-    duration: 1800,
-    delay: 600,
-    easing: 'easeOutCubic',
-  });
+    anime.timeline({ easing: 'easeOutExpo' })
+      .add({ targets: '#hero-eyebrow', opacity: [0,1], translateY: [16,0], duration: 700 })
+      .add({ targets: '#hero-l1', opacity: [0,1], translateY: [40,0], duration: 800 }, '-=450')
+      .add({ targets: '#hero-l2', opacity: [0,1], translateY: [40,0], duration: 800 }, '-=600')
+      .add({ targets: '#hero-sub', opacity: [0,1], translateY: [24,0], duration: 700 }, '-=500')
+      .add({ targets: '#hero-panel', opacity: [0,1], translateY: [24,0], scale: [0.96,1], duration: 700 }, '-=600')
+      .add({ targets: '#nav-logo, #nav-links a', opacity: [0,1], translateY: [-10,0], duration: 500, delay: anime.stagger(60) }, '-=900');
+
+    /* hero counter — computed from the current year so it never goes stale */
+    const seasonsRecorded = new Date().getFullYear() - 1950 + 1;
+    const heroCounterEl = document.getElementById('hero-counter');
+    heroCounterEl.dataset.count = String(seasonsRecorded);
+    const heroCounter = { val: 0 };
+    anime({
+      targets: heroCounter,
+      val: seasonsRecorded,
+      round: 1,
+      duration: 1800,
+      delay: 600,
+      easing: 'easeOutCubic',
+      update: () => heroCounterEl.textContent = heroCounter.val,
+    });
+    anime({
+      targets: '#hero-bar',
+      width: ['0%','100%'],
+      duration: 1800,
+      delay: 600,
+      easing: 'easeOutCubic',
+    });
+  };
+  window.addEventListener('f1-intro-complete', playHeroReveal, { once: true });
+  setTimeout(playHeroReveal, 14300);
 
   /* marquee scroll */
   anime({

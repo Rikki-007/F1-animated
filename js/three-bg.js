@@ -1,15 +1,21 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
 (() => {
+  const html = document.documentElement;
+  const revealEverythingNow = () => {
+    html.classList.remove('js-loading', 'js-content-pending');
+    window.dispatchEvent(new CustomEvent('f1-intro-complete'));
+  };
+
   const mount = document.getElementById('bg-canvas');
-  if (!mount) return;
+  if (!mount) { revealEverythingNow(); return; }
 
   const testCanvas = document.createElement('canvas');
   const gl = testCanvas.getContext('webgl2') || testCanvas.getContext('webgl');
-  if (!gl) return;
+  if (!gl) { revealEverythingNow(); return; }
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const PARTICLE_COUNT = window.innerWidth < 768 ? 900 : 1800;
+  const PARTICLE_COUNT = window.innerWidth < 768 ? 1000 : 2200;
   const palette = [0xe10600, 0xff3b30, 0xd4af37, 0x7dd3fc, 0xffffff];
 
   let width = window.innerWidth;
@@ -23,37 +29,41 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
   try {
     renderer = new THREE.WebGLRenderer({ canvas: testCanvas, context: gl, antialias: false, alpha: true, powerPreference: 'low-power' });
   } catch (err) {
+    revealEverythingNow();
     return;
   }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(width, height);
   mount.appendChild(renderer.domElement);
 
-  /* ================= Particle field ================= */
+  /* ================= Particle field — dense, twinkling, layered ================= */
   const geometry = new THREE.BufferGeometry();
   const positions = new Float32Array(PARTICLE_COUNT * 3);
   const colors = new Float32Array(PARTICLE_COUNT * 3);
   const seeds = new Float32Array(PARTICLE_COUNT);
+  const sizes = new Float32Array(PARTICLE_COUNT);
   const tmpColor = new THREE.Color();
 
   for (let i = 0; i < PARTICLE_COUNT; i++) {
     const i3 = i * 3;
-    positions[i3] = (Math.random() - 0.5) * 1700;
-    positions[i3 + 1] = (Math.random() - 0.5) * 1200;
-    positions[i3 + 2] = (Math.random() - 0.5) * 1500;
+    positions[i3] = (Math.random() - 0.5) * 1800;
+    positions[i3 + 1] = (Math.random() - 0.5) * 1300;
+    positions[i3 + 2] = (Math.random() - 0.5) * 1600;
     tmpColor.set(palette[Math.floor(Math.random() * palette.length)]);
     colors[i3] = tmpColor.r;
     colors[i3 + 1] = tmpColor.g;
     colors[i3 + 2] = tmpColor.b;
     seeds[i] = Math.random() * Math.PI * 2;
+    sizes[i] = 0.6 + Math.random() * 0.8;
   }
 
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
+  geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
 
-  // Drift is computed on the GPU from uTime + a per-vertex seed, so the CPU
-  // never has to rewrite/re-upload the position buffer every frame.
+  // Drift + twinkle are computed on the GPU from uTime + a per-vertex seed,
+  // so the CPU never has to rewrite/re-upload the position buffer per frame.
   const material = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
@@ -68,24 +78,28 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
       uniform float uTime;
       uniform float uPixelRatio;
       attribute float aSeed;
+      attribute float aSize;
       varying vec3 vColor;
+      varying float vTwinkle;
       void main() {
         vColor = color;
         vec3 p = position;
         p.x += cos(uTime * 0.35 + aSeed) * 8.0;
         p.y += sin(uTime * 0.5 + aSeed) * 14.0;
+        vTwinkle = 0.55 + 0.45 * sin(uTime * 0.9 + aSeed * 3.1);
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mv;
-        gl_PointSize = 2.6 * uPixelRatio * (300.0 / -mv.z);
+        gl_PointSize = 2.6 * aSize * uPixelRatio * (300.0 / -mv.z) * (0.75 + 0.4 * vTwinkle);
       }
     `,
     fragmentShader: `
       varying vec3 vColor;
+      varying float vTwinkle;
       uniform float uOpacity;
       void main() {
         float d = length(gl_PointCoord - vec2(0.5));
         if (d > 0.5) discard;
-        float alpha = smoothstep(0.5, 0.0, d) * uOpacity;
+        float alpha = smoothstep(0.5, 0.0, d) * uOpacity * vTwinkle;
         gl_FragColor = vec4(vColor, alpha);
       }
     `,
@@ -95,23 +109,27 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
   particleGroup.add(new THREE.Points(geometry, material));
   scene.add(particleGroup);
 
-  /* ================= F1 car: parts, built from primitives ================
+  /* ================= F1 car: built from primitives, one shared cluster ===========
    * No 3D model asset is available, so the car is assembled from simple
-   * geometry in the same wireframe-HUD style as the rest of the site.
-   * Each part maps 1:1 to a page section (front wing→Overview, halo→Data
-   * Hub, wheel→Legends, sidepods→Constructors, tyres→Circuits, rear
-   * wing→Timeline) and ends up "docked" at its own spot on the page. */
+   * geometry in the same wireframe-HUD style as the rest of the site. All
+   * six parts share ONE on-screen "main location" (not scattered across the
+   * page) arranged as a compact exploded-diagram cluster, front-to-back —
+   * nose closest to the viewer, rear wing furthest — matching page scroll
+   * order (Overview → ... → Timeline). Only the active section's part is
+   * emphasized; the rest sit dim in the background of the cluster. */
   const SECTION_IDS = ['overview', 'data-hub', 'legends', 'teams', 'circuits', 'timeline'];
   const sectionEls = SECTION_IDS.map((id) => document.getElementById(id));
 
-  const DOCKED_POSITIONS = [
-    [220, 90, -40],
-    [-200, 40, -60],
-    [240, -30, -50],
-    [-230, -80, -40],
-    [180, 120, -70],
-    [-160, -140, -50],
+  const MAIN_LOCATION = [160, 20, -30];
+  const PART_OFFSETS = [
+    [0, 30, 100],
+    [-50, 10, 40],
+    [50, -10, 10],
+    [-50, -30, -30],
+    [50, 20, -60],
+    [0, -20, -110],
   ];
+  const PART_SCALE = 1.35;
 
   const PART_INFO = [
     { label: 'FRONT WING & NOSE', title: 'First Point of Airflow', fact: 'The front wing shapes airflow for the entire car — teams run thousands of CFD simulations to perfect its curvature.' },
@@ -202,7 +220,11 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
   const carParts = CAR_PART_DEFS.map((def, i) => {
     const part = buildCarPart(def);
-    part.dockedPos = DOCKED_POSITIONS[i];
+    part.dockedPos = [
+      MAIN_LOCATION[0] + PART_OFFSETS[i][0],
+      MAIN_LOCATION[1] + PART_OFFSETS[i][1],
+      MAIN_LOCATION[2] + PART_OFFSETS[i][2],
+    ];
     carRig.add(part.group);
     return part;
   });
@@ -211,7 +233,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
     carParts.forEach(({ group, dockedPos }) => {
       scene.attach(group);
       group.position.set(dockedPos[0], dockedPos[1], dockedPos[2]);
-      group.scale.setScalar(1);
+      group.scale.setScalar(PART_SCALE);
       group.rotation.set(0, 0, 0);
     });
   }
@@ -219,12 +241,34 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
   const dataReadyPromise = new Promise((resolve) => {
     window.addEventListener('f1-data-ready', () => resolve(), { once: true });
   });
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  /* ---------- Loading screen percentage ---------- */
+  const loaderPercentEl = document.getElementById('loader-percent');
+  const loaderBarEl = document.getElementById('loader-bar');
+  const loaderCounter = { val: 0 };
+  const updateLoaderDom = () => {
+    const v = Math.round(loaderCounter.val);
+    if (loaderPercentEl) loaderPercentEl.textContent = v + '%';
+    if (loaderBarEl) loaderBarEl.style.width = v + '%';
+  };
+  const animateLoaderTo = (val, duration) => {
+    if (!window.anime) { loaderCounter.val = val; updateLoaderDom(); return Promise.resolve(); }
+    return window.anime({
+      targets: loaderCounter,
+      val,
+      duration,
+      easing: 'easeOutCubic',
+      update: updateLoaderDom,
+    }).finished;
+  };
 
   let introComplete = false;
 
   async function playIntro() {
     if (reduceMotion || !window.anime) {
       dockAllPartsImmediately();
+      revealEverythingNow();
       introComplete = true;
       return;
     }
@@ -232,16 +276,18 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
       carRig.position.set(0, 15, -70);
 
       // Scale still ramps 0→1 per part below, so nothing is visible yet —
-      // but opacity has to be non-zero *now*, not just after introComplete,
-      // or the whole build/drive/scatter sequence renders invisibly.
-      const visibleLine = 0.85 * themeOpacityScale;
-      const visibleFill = 0.08 * themeOpacityScale;
+      // but opacity has to be non-zero *now*, or the whole build/drive/
+      // scatter sequence renders invisibly even as it moves.
+      const visibleLine = 0.85;
+      const visibleFill = 0.08;
       carParts.forEach((p) => {
         p.lineMats.forEach((m) => { m.opacity = visibleLine; });
         p.fillMats.forEach((m) => { m.opacity = visibleFill; });
       });
 
-      // BUILD — parts settle into their assembled position one after another
+      // BUILD — parts settle into their assembled position one after
+      // another, on top of the loader; percentage climbs to 96% here and
+      // holds — it only completes once the live data actually resolves.
       const buildScale = anime({
         targets: carParts.map((p) => p.group.scale),
         x: [0, 1], y: [0, 1], z: [0, 1],
@@ -256,44 +302,55 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
         delay: anime.stagger(110),
         easing: 'easeOutBack',
       });
-      await Promise.all([buildScale.finished, buildSpin.finished]);
+      await Promise.all([buildScale.finished, buildSpin.finished, animateLoaderTo(96, 950)]);
 
-      // DRIVE — the assembled car runs the full width of the page
+      await Promise.race([dataReadyPromise, wait(8500)]);
+      await animateLoaderTo(100, 250);
+      await wait(250);
+
+      // Loader dismisses; the car (already fully built) is now visible
+      // against the actual page background as it drives across.
+      html.classList.remove('js-loading');
+
       const drive = anime.timeline()
         .add({ targets: carRig.position, x: -550, duration: 500, easing: 'easeInQuad' })
         .add({ targets: carRig.position, x: 550, duration: 900, easing: 'easeInOutSine', begin: () => { boost = 4; } })
         .add({ targets: carRig.position, x: 300, duration: 400, easing: 'easeOutQuad' });
       await drive.finished;
 
-      // Hold until the live standings have actually resolved (or 8.5s elapses)
-      await Promise.race([
-        dataReadyPromise,
-        new Promise((resolve) => setTimeout(resolve, 8500)),
-      ]);
-
-      // SCATTER — the car dissects; each part flies out, staggered, to its
-      // own spot on the page (re-parented to the scene so its world
-      // transform carries over cleanly from the car formation).
+      // SCATTER — the car dissects; each part flies out, staggered and in
+      // order (front-to-back), into its slot in the shared cluster.
       carParts.forEach(({ group }) => scene.attach(group));
       const scatterMove = anime({
         targets: carParts.map((p) => p.group.position),
         x: (el, i) => carParts[i].dockedPos[0],
         y: (el, i) => carParts[i].dockedPos[1],
         z: (el, i) => carParts[i].dockedPos[2],
-        delay: anime.stagger(130),
+        delay: anime.stagger(150),
+        duration: 750,
+        easing: 'easeOutExpo',
+      });
+      const scatterScale = anime({
+        targets: carParts.map((p) => p.group.scale),
+        x: PART_SCALE, y: PART_SCALE, z: PART_SCALE,
+        delay: anime.stagger(150),
         duration: 750,
         easing: 'easeOutExpo',
       });
       const scatterSpin = anime({
         targets: carParts.map((p) => p.group.rotation),
         y: (el, i) => `+=${(i % 2 === 0 ? 1 : -1) * (Math.PI * 2 + Math.random() * Math.PI)}`,
-        delay: anime.stagger(130),
+        delay: anime.stagger(150),
         duration: 750,
         easing: 'easeOutExpo',
       });
-      await Promise.all([scatterMove.finished, scatterSpin.finished]);
+      await Promise.all([scatterMove.finished, scatterScale.finished, scatterSpin.finished]);
+
+      // Parts are still and docked — reveal the actual site content.
+      revealEverythingNow();
     } catch (err) {
       dockAllPartsImmediately();
+      revealEverythingNow();
     } finally {
       introComplete = true;
     }
@@ -407,11 +464,11 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
       carParts.forEach(({ group, lineMats, fillMats }, i) => {
         const isActive = i === activeSection;
-        const targetLine = (isActive ? 0.85 : 0) * themeOpacityScale;
-        const targetFill = (isActive ? 0.08 : 0) * themeOpacityScale;
+        const targetLine = (isActive ? 0.9 : 0.16) * themeOpacityScale;
+        const targetFill = (isActive ? 0.09 : 0.02) * themeOpacityScale;
         lineMats.forEach((m) => { m.opacity += (targetLine - m.opacity) * 0.06; });
         fillMats.forEach((m) => { m.opacity += (targetFill - m.opacity) * 0.06; });
-        group.rotation.y += 0.006 + i * 0.001;
+        group.rotation.y += 0.005 + i * 0.0008;
 
         if (!reduceMotion && isActive) {
           projected.copy(group.position).project(camera);
@@ -419,14 +476,15 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
           const screenY = (-projected.y * 0.5 + 0.5) * height;
           const dx = mousePx.x - screenX;
           const dy = mousePx.y - screenY;
-          const nearCursor = Math.sqrt(dx * dx + dy * dy) < 260;
-          const targetScale = nearCursor ? 1.22 : 1;
+          const nearCursor = Math.sqrt(dx * dx + dy * dy) < 280;
+          const targetScale = (nearCursor ? PART_SCALE * 1.18 : PART_SCALE);
           group.scale.x += (targetScale - group.scale.x) * 0.08;
           group.scale.y = group.scale.z = group.scale.x;
           group.rotation.x += (pointer.y * 0.5 - group.rotation.x) * 0.06;
           group.rotation.z += (pointer.x * 0.35 - group.rotation.z) * 0.06;
         } else {
-          group.scale.x += (1 - group.scale.x) * 0.06;
+          const targetScale = isActive ? PART_SCALE : PART_SCALE * 0.75;
+          group.scale.x += (targetScale - group.scale.x) * 0.06;
           group.scale.y = group.scale.z = group.scale.x;
           group.rotation.x += (0 - group.rotation.x) * 0.06;
           group.rotation.z += (0 - group.rotation.z) * 0.06;

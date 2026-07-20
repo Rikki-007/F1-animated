@@ -1,5 +1,37 @@
 html { scroll-behavior: smooth; }
 
+/* ---------- Build/load intro sequence ---------- */
+#intro-loader {
+  background: var(--bg-page);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+html.js-loading #intro-loader {
+  opacity: 1;
+  pointer-events: auto;
+}
+html.js-loading #bg-canvas {
+  z-index: 90;
+}
+html.js-loading,
+html.js-content-pending {
+  overflow: hidden;
+}
+html.js-loading body,
+html.js-content-pending body {
+  overflow: hidden;
+}
+
+#site-content {
+  transition: opacity 1.4s cubic-bezier(0.16, 1, 0.3, 1), transform 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+html.js-content-pending #site-content {
+  opacity: 0;
+  transform: translate(46px, -16px);
+  pointer-events: none;
+}
+
 :root,
 [data-theme="dark"] {
   color-scheme: dark;

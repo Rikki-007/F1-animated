@@ -12,6 +12,22 @@
   })();
 </script>
 
+<script>
+  (function () {
+    // Hides #site-content and shows the car-build loader until js/three-bg.js
+    // clears these classes. Defaults (no classes) are "site fully visible" —
+    // if JS fails before this runs, the safety-net timeout below still fires
+    // in the worst case, and the loader/hide CSS rules only ever activate
+    // when these classes are present, so a totally broken script never
+    // strands the page invisible.
+    var html = document.documentElement;
+    html.classList.add('js-loading', 'js-content-pending');
+    setTimeout(function () {
+      html.classList.remove('js-loading', 'js-content-pending');
+    }, 14000);
+  })();
+</script>
+
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
 <script src="js/tailwind-config.js"></script>
@@ -40,9 +56,22 @@
   <p class="text-xs text-[color:var(--tx-50)] leading-relaxed" id="part-spotlight-fact">—</p>
 </div>
 
+<!-- build/load screen — solid backdrop, the F1 car assembles on top of it -->
+<div id="intro-loader" class="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-6" aria-hidden="true">
+  <p class="font-display text-xs tracking-[0.5em] text-[color:var(--tx-40)]">ASSEMBLING</p>
+  <p class="font-display font-900 text-6xl md:text-7xl stat-glow" id="loader-percent">0%</p>
+  <div class="w-56 h-[3px] rounded-full progress-track overflow-hidden">
+    <div class="h-full rounded-full progress-fill" id="loader-bar" style="width:0%"></div>
+  </div>
+</div>
+
 <!-- background layers -->
 <div class="fixed inset-0 grid-overlay pointer-events-none z-0"></div>
 <div class="fixed inset-0 noise pointer-events-none z-0 mix-blend-overlay"></div>
+
+<!-- Everything below stays hidden (see html.js-content-pending in styles.css)
+     until the car intro finishes, then slides in as one piece. -->
+<div id="site-content">
 
 <!-- NAVBAR -->
 <header class="fixed top-0 inset-x-0 z-50">
@@ -436,6 +465,8 @@
     <p>Concept dashboard — statistics for illustrative purposes.</p>
   </div>
 </footer>
+
+</div><!-- /#site-content -->
 
 <script src="js/main.js"></script>
 <script src="js/f1Data.js"></script>
