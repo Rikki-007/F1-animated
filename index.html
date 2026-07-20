@@ -30,8 +30,15 @@
 <div id="cursor-dot" class="fixed top-0 left-0 z-[999] pointer-events-none" aria-hidden="true"></div>
 <div id="cursor-ring" class="fixed top-0 left-0 z-[999] pointer-events-none" aria-hidden="true"></div>
 
-<!-- live 3D particle background -->
+<!-- live 3D particle background + F1 car -->
 <div id="bg-canvas" class="fixed inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
+
+<!-- car part detail HUD, content swaps as each part comes into view on scroll -->
+<div id="part-spotlight" class="card-tilt hidden md:block fixed bottom-6 left-6 z-40 max-w-xs glass rounded-2xl p-4" style="opacity:0">
+  <p class="font-display text-[10px] tracking-[0.3em] text-racered2 mb-1" id="part-spotlight-label">CAR PART</p>
+  <h4 class="font-display font-700 text-sm mb-1" id="part-spotlight-title">—</h4>
+  <p class="text-xs text-[color:var(--tx-50)] leading-relaxed" id="part-spotlight-fact">—</p>
+</div>
 
 <!-- background layers -->
 <div class="fixed inset-0 grid-overlay pointer-events-none z-0"></div>

@@ -391,7 +391,12 @@
       buildBioPanel(bioPanel, driver);
     });
 
-    loadSeason('current');
+    loadSeason('current').then(() => {
+      // Signals the car-build intro (js/three-bg.js) that it's safe to move
+      // past the "loading" beat — loadSeason always resolves, even on
+      // fallback data, so this never hangs waiting on a dead network.
+      window.dispatchEvent(new CustomEvent('f1-data-ready'));
+    });
   }
 
   if (document.readyState === 'loading') {
