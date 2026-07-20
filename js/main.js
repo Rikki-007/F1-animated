@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     html.setAttribute('data-theme', next);
     localStorage.setItem('f1-theme', next);
     syncIcons(next);
+    window.dispatchEvent(new CustomEvent('f1-theme-change', { detail: { theme: next } }));
     anime({
       targets: toggleBtn,
       rotate: next === 'light' ? [0, 180] : [0, -180],

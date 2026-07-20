@@ -23,6 +23,16 @@
 
 <body class="text-[color:var(--tx-100)] overflow-x-hidden selection:bg-racered selection:text-white">
 
+<!-- scroll progress -->
+<div id="scroll-progress" class="fixed top-0 left-0 h-[3px] w-0 z-[60]"></div>
+
+<!-- custom cursor -->
+<div id="cursor-dot" class="fixed top-0 left-0 z-[999] pointer-events-none" aria-hidden="true"></div>
+<div id="cursor-ring" class="fixed top-0 left-0 z-[999] pointer-events-none" aria-hidden="true"></div>
+
+<!-- live 3D particle background -->
+<div id="bg-canvas" class="fixed inset-0 z-[1] pointer-events-none" aria-hidden="true"></div>
+
 <!-- background layers -->
 <div class="fixed inset-0 grid-overlay pointer-events-none z-0"></div>
 <div class="fixed inset-0 noise pointer-events-none z-0 mix-blend-overlay"></div>
@@ -36,12 +46,12 @@
         <span class="font-display font-700 tracking-[0.25em] text-sm">APEX<span class="text-racered">.</span>RECORDS</span>
       </div>
       <nav class="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide text-[color:var(--tx-60)]" id="nav-links">
-        <a href="#overview" class="hover:text-[color:var(--tx-100)] transition-colors">Overview</a>
-        <a href="#data-hub" class="hover:text-[color:var(--tx-100)] transition-colors">Data Hub</a>
-        <a href="#legends" class="hover:text-[color:var(--tx-100)] transition-colors">Legends</a>
-        <a href="#teams" class="hover:text-[color:var(--tx-100)] transition-colors">Constructors</a>
-        <a href="#circuits" class="hover:text-[color:var(--tx-100)] transition-colors">Circuits</a>
-        <a href="#timeline" class="hover:text-[color:var(--tx-100)] transition-colors">Timeline</a>
+        <a href="#overview" class="magnetic hover:text-[color:var(--tx-100)] transition-colors">Overview</a>
+        <a href="#data-hub" class="magnetic hover:text-[color:var(--tx-100)] transition-colors">Data Hub</a>
+        <a href="#legends" class="magnetic hover:text-[color:var(--tx-100)] transition-colors">Legends</a>
+        <a href="#teams" class="magnetic hover:text-[color:var(--tx-100)] transition-colors">Constructors</a>
+        <a href="#circuits" class="magnetic hover:text-[color:var(--tx-100)] transition-colors">Circuits</a>
+        <a href="#timeline" class="magnetic hover:text-[color:var(--tx-100)] transition-colors">Timeline</a>
       </nav>
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2 text-xs font-display tracking-widest text-racered2">
@@ -51,7 +61,7 @@
           </span>
           LIVE DATA
         </div>
-        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle light and dark mode" type="button">
+        <button id="theme-toggle" class="theme-toggle magnetic" aria-label="Toggle light and dark mode" type="button">
           <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
           <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
         </button>
@@ -422,6 +432,9 @@
 
 <script src="js/main.js"></script>
 <script src="js/f1Data.js"></script>
+<script src="js/cursor.js"></script>
+<script src="js/scroll-fx.js"></script>
+<script type="module" src="js/three-bg.js"></script>
 
 </body>
 </html>

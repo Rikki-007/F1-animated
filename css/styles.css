@@ -401,3 +401,50 @@ select {
   width: 16px;
   height: 16px;
 }
+
+/* ---------- 3D particle background ---------- */
+#bg-canvas canvas {
+  display: block;
+}
+
+/* ---------- Scroll progress bar ---------- */
+#scroll-progress {
+  background: linear-gradient(90deg, #e10600, #ff3b30, #d4af37);
+  box-shadow: 0 0 12px rgba(225,6,0,0.6);
+}
+
+/* ---------- Custom cursor ---------- */
+#cursor-dot,
+#cursor-ring {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+#cursor-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--tx-100);
+  box-shadow: 0 0 10px 2px rgba(225,6,0,0.65);
+}
+#cursor-ring {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(225,6,0,0.55);
+  transition: opacity 0.2s ease, border-color 0.25s ease, background-color 0.25s ease;
+}
+#cursor-ring.cursor-ring--active {
+  border-color: rgba(255,59,48,0.9);
+  background-color: rgba(225,6,0,0.08);
+}
+body.has-custom-cursor,
+body.has-custom-cursor a,
+body.has-custom-cursor button,
+body.has-custom-cursor select,
+body.has-custom-cursor .card-tilt,
+body.has-custom-cursor .standings-row {
+  cursor: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  #cursor-ring { transition: opacity 0.2s ease; }
+}
